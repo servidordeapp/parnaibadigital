@@ -1,0 +1,668 @@
+openapi: 3.1.0
+
+# ParnaíbaDigital — contratos de LEITURA da API v1.
+#
+# STATUS: contrato revisável. NENHUM endpoint é implementado nesta fase (FR-024, FR-038,
+# SC-015). Este arquivo é a fonte de verdade dos tipos (D-10): `packages/types` é gerado
+# dele por `openapi-typescript`, e os dados demonstrativos de `packages/api-client` são
+# validados contra ele.
+#
+# Princípio VII: mudança dentro da v1 é sempre aditiva. Mudança incompatível abre a v2.
+
+info:
+  title: ParnaíbaDigital API
+  version: 1.0.0-draft
+  description: |
+    Contratos de leitura do portal público e do painel. Escrita, autenticação e operações
+    editoriais são escopo de features posteriores.
+  contact:
+    name: ParnaíbaDigital
+    url: https://parnaibadigital.com.br
+
+servers:
+  - url: https://parnaibadigital.com.br/api/v1
+    description: Produção (ainda não provisionada)
+  - url: http://localhost:8000/api/v1
+    description: Desenvolvimento
+
+tags:
+  - name: news
+  - name: taxonomy
+  - name: geo
+  - name: gazette
+  - name: services
+  - name: search
+
+paths:
+  /news:
+    get:
+      tags: [news]
+      summary: Lista notícias publicadas, mais recentes primeiro
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: category
+          in: query
+          schema: { type: string }
+          description: Slug de editoria
+        - name: municipality
+          in: query
+          schema: { type: string }
+          description: Slug de município
+        - name: neighborhood
+          in: query
+          schema: { type: string }
+          description: Identificador de bairro (`{municipio}:{bairro}`)
+        - name: author
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Página de notícias
+          headers:
+            Cache-Control: { $ref: '#/components/headers/CacheControl' }
+            ETag: { $ref: '#/components/headers/ETag' }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/NewsSummary' }
+
+  /news/{slug}:
+    get:
+      tags: [news]
+      summary: Notícia completa por slug
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: Notícia
+          headers:
+            Cache-Control: { $ref: '#/components/headers/CacheControl' }
+            ETag: { $ref: '#/components/headers/ETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/News' }
+        '301':
+          description: Slug alterado — redirecionamento permanente (Princípio II)
+          headers:
+            Location: { schema: { type: string, format: uri } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /categories:
+    get:
+      tags: [taxonomy]
+      summary: Editorias
+      responses:
+        '200':
+          description: Lista completa (sem paginação — conjunto pequeno e estável)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Category' }
+
+  /municipalities:
+    get:
+      tags: [geo]
+      summary: Registro canônico de municípios
+      description: |
+        Fonte do namespace raiz do portal. Adicionar município é operação de dados
+        (SC-010); o consumidor valida colisão de slug contra suas rotas reservadas.
+      responses:
+        '200':
+          description: Municípios
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Municipality' }
+
+  /municipalities/{slug}:
+    get:
+      tags: [geo]
+      summary: Município por slug, com seus bairros
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: Município
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Municipality'
+                  - type: object
+                    required: [neighborhoods]
+                    properties:
+                      neighborhoods:
+                        type: array
+                        items: { $ref: '#/components/schemas/Neighborhood' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /neighborhoods:
+    get:
+      tags: [geo]
+      summary: Bairros, opcionalmente filtrados por município
+      parameters:
+        - name: municipality
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Bairros
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Neighborhood' }
+
+  /authors:
+    get:
+      tags: [taxonomy]
+      summary: Autores
+      responses:
+        '200':
+          description: Autores
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Author' }
+
+  /authors/{slug}:
+    get:
+      tags: [taxonomy]
+      summary: Autor por slug
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: Autor
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Author' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /search:
+    get:
+      tags: [search]
+      summary: Busca em conteúdo publicado
+      description: |
+        Atrás da porta de domínio `SearchEngine` (D-14). O contrato não expõe nenhum
+        detalhe do motor; trocar a implementação não altera esta resposta.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 2 }
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [news, event, company, gazette]
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Resultados (lista vazia é resposta válida, não erro)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/SearchResult' }
+
+  /events:
+    get:
+      tags: [services]
+      summary: Eventos
+      parameters:
+        - name: municipality
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Eventos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Event' }
+
+  /official-gazette:
+    get:
+      tags: [gazette]
+      summary: Documentos do Diário Oficial
+      parameters:
+        - name: type
+          in: query
+          schema: { $ref: '#/components/schemas/GazetteType' }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/GazetteStatus' }
+        - name: agency
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Documentos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/OfficialGazetteDocument' }
+
+  /official-gazette/{id}:
+    get:
+      tags: [gazette]
+      summary: Documento por identificador
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Documento
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OfficialGazetteDocument' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /companies:
+    get:
+      tags: [services]
+      summary: Empresas do guia local
+      parameters:
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: neighborhood
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Empresas
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Company' }
+
+  /utilities:
+    get:
+      tags: [services]
+      summary: Itens de utilidade pública
+      parameters:
+        - name: group
+          in: query
+          schema: { $ref: '#/components/schemas/UtilityGroup' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Itens
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/UtilityItem' }
+
+components:
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      name: perPage
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 12 }
+    Slug:
+      name: slug
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Slug' }
+
+  headers:
+    CacheControl:
+      description: Explícito em toda resposta pública (Constituição, camadas de cache)
+      schema: { type: string }
+    ETag:
+      schema: { type: string }
+
+  responses:
+    NotFound:
+      description: Recurso inexistente
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+
+    Slug:
+      type: string
+      pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+
+    Paginated:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: {} }
+        meta:
+          type: object
+          required: [page, perPage, total, totalPages]
+          properties:
+            page: { type: integer }
+            perPage: { type: integer }
+            total: { type: integer }
+            totalPages: { type: integer }
+
+    MediaRef:
+      type: object
+      required: [url, alt, width, height]
+      description: |
+        `alt` obrigatório (Princípio III). `width`/`height` obrigatórios (CLS, Princípio I).
+        `url` é opaca: o frontend nunca conhece bucket, região ou fornecedor de storage.
+      properties:
+        url: { type: string, format: uri }
+        alt: { type: string }
+        width: { type: integer, minimum: 1 }
+        height: { type: integer, minimum: 1 }
+        credit: { type: string }
+
+    Municipality:
+      type: object
+      required: [ibgeCode, name, slug, state, newsCount]
+      properties:
+        ibgeCode: { type: string, pattern: '^[0-9]{7}$' }
+        name: { type: string }
+        slug: { $ref: '#/components/schemas/Slug' }
+        state: { type: string, enum: [PI] }
+        newsCount: { type: integer, minimum: 0 }
+        latitude: { type: number }
+        longitude: { type: number }
+
+    Neighborhood:
+      type: object
+      required: [id, name, slug, municipalityIbgeCode]
+      description: '`id` é `{municipioSlug}:{bairroSlug}` — nome isolado nunca identifica bairro.'
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { $ref: '#/components/schemas/Slug' }
+        municipalityIbgeCode: { type: string }
+
+    Category:
+      type: object
+      required: [slug, name, tone]
+      properties:
+        slug: { $ref: '#/components/schemas/Slug' }
+        name: { type: string }
+        tone: { $ref: '#/components/schemas/Tone' }
+
+    Tone:
+      type: string
+      enum: [urgent, brand, highlight, standard]
+
+    Author:
+      type: object
+      required: [slug, name, bio, articleCount]
+      properties:
+        slug: { $ref: '#/components/schemas/Slug' }
+        name: { type: string }
+        bio: { type: string }
+        portrait: { $ref: '#/components/schemas/MediaRef' }
+        articleCount: { type: integer, minimum: 0 }
+
+    CurationStamp:
+      type: object
+      required: [kind, reviewedByHuman, updatedAt]
+      properties:
+        kind: { type: string, enum: [curated, original] }
+        reviewedByHuman: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+
+    Attribution:
+      type: object
+      required: [sourceName, sourceUrl]
+      description: Obrigatório quando `curation.kind = curated` (Princípio V, FR-018).
+      properties:
+        sourceName: { type: string }
+        sourceUrl: { type: string, format: uri }
+        archivedUrl: { type: string, format: uri }
+
+    ContentBlock:
+      oneOf:
+        - type: object
+          required: [type, text]
+          properties:
+            type: { const: paragraph }
+            text: { type: string }
+        - type: object
+          required: [type, level, text]
+          properties:
+            type: { const: heading }
+            level: { type: integer, minimum: 2, maximum: 4 }
+            text: { type: string }
+        - type: object
+          required: [type, items]
+          properties:
+            type: { const: list }
+            ordered: { type: boolean }
+            items: { type: array, items: { type: string } }
+        - type: object
+          required: [type, text]
+          properties:
+            type: { const: quote }
+            text: { type: string }
+            attribution: { type: string }
+        - type: object
+          required: [type, media]
+          properties:
+            type: { const: image }
+            media: { $ref: '#/components/schemas/MediaRef' }
+
+    NewsSummary:
+      type: object
+      required:
+        [id, slug, headline, categorySlug, tone, authorSlug, municipalityIbgeCode,
+         neighborhoodIds, publishedAt, updatedAt, curation, sponsored]
+      properties:
+        id: { type: string }
+        slug: { $ref: '#/components/schemas/Slug' }
+        headline: { type: string, description: 'Padrão do DS: [Bairro] + [fato]' }
+        standfirst: { type: string }
+        categorySlug: { $ref: '#/components/schemas/Slug' }
+        tone: { $ref: '#/components/schemas/Tone' }
+        authorSlug: { $ref: '#/components/schemas/Slug' }
+        municipalityIbgeCode:
+          type: string
+          description: Localização primária obrigatória (Princípio II, FR-021).
+        neighborhoodIds: { type: array, items: { type: string } }
+        publishedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        image: { $ref: '#/components/schemas/MediaRef' }
+        curation: { $ref: '#/components/schemas/CurationStamp' }
+        sponsored: { type: boolean }
+        viewCount: { type: integer, minimum: 0 }
+        commentCount: { type: integer, minimum: 0 }
+
+    News:
+      allOf:
+        - $ref: '#/components/schemas/NewsSummary'
+        - type: object
+          required: [body]
+          properties:
+            body:
+              type: array
+              items: { $ref: '#/components/schemas/ContentBlock' }
+            attribution: { $ref: '#/components/schemas/Attribution' }
+            regionalContext: { type: string }
+            gazetteDocumentId:
+              type: string
+              description: Vínculo com o documento oficial que originou a matéria.
+
+    SearchResult:
+      type: object
+      required: [type, slug, title]
+      properties:
+        type: { type: string, enum: [news, event, company, gazette] }
+        slug: { type: string }
+        title: { type: string }
+        excerpt: { type: string }
+        municipalityIbgeCode: { type: string }
+
+    Event:
+      type: object
+      required: [id, slug, title, startsAt, venue, municipalityIbgeCode, categorySlug, price]
+      properties:
+        id: { type: string }
+        slug: { $ref: '#/components/schemas/Slug' }
+        title: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        venue: { type: string }
+        municipalityIbgeCode: { type: string }
+        neighborhoodId: { type: string }
+        categorySlug: { $ref: '#/components/schemas/Slug' }
+        price:
+          type: object
+          required: [free]
+          properties:
+            free: { type: boolean }
+            amount: { type: number, minimum: 0 }
+
+    GazetteType:
+      type: string
+      enum: [portaria, edital, licitacao, decreto, resolucao, contrato]
+
+    GazetteStatus:
+      type: string
+      enum: [fila_ia, em_revisao, publicado, arquivado]
+      description: |
+        Não existe transição de `fila_ia` para `publicado`. A revisão humana é obrigatória
+        (Princípio V).
+
+    OfficialGazetteDocument:
+      type: object
+      required: [id, number, agency, publishedAt, type, summary, status, sourceRef]
+      properties:
+        id: { type: string }
+        number: { type: string }
+        agency: { type: string }
+        department: { type: string }
+        publishedAt: { type: string, format: date }
+        type: { $ref: '#/components/schemas/GazetteType' }
+        summary: { type: string }
+        status: { $ref: '#/components/schemas/GazetteStatus' }
+        sourceRef:
+          type: object
+          required: [documentId, sourceUrl]
+          description: Referência verificável ao original — nunca opcional (Princípio V).
+          properties:
+            documentId: { type: string }
+            sourceUrl: { type: string, format: uri }
+            archivedUrl: { type: string, format: uri }
+        generatedNewsSlug:
+          type: string
+          description: Ausência é estado legítimo — documento sem matéria associada.
+
+    Company:
+      type: object
+      required: [id, slug, name, categorySlug, neighborhoodId, rating, reviewCount, openingStatus]
+      properties:
+        id: { type: string }
+        slug: { $ref: '#/components/schemas/Slug' }
+        name: { type: string }
+        categorySlug: { $ref: '#/components/schemas/Slug' }
+        neighborhoodId: { type: string }
+        rating: { type: number, minimum: 0, maximum: 5 }
+        reviewCount: { type: integer, minimum: 0 }
+        phone: { type: string }
+        openingStatus: { type: string, enum: [aberto, fechado, fecha_em_breve] }
+
+    UtilityGroup:
+      type: string
+      enum: [concursos, empregos, licitacoes, editais]
+
+    UtilityItem:
+      type: object
+      required: [id, group, agency, title, statusBadge]
+      properties:
+        id: { type: string }
+        group: { $ref: '#/components/schemas/UtilityGroup' }
+        agency: { type: string }
+        title: { type: string }
+        detail: { type: string }
+        amount: { type: number }
+        deadline: { type: string, format: date }
+        statusBadge: { type: string }
