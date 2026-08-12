@@ -1,0 +1,96 @@
+---
+import type { NeighborhoodLink } from "./types";
+
+import Icon from "../core/Icon.astro";
+import Tag from "../core/Tag.astro";
+
+/**
+ * "Topo em destaque" — o bloco geolocalizado que o Princípio II trata como conteúdo de SEO
+ * local, não como filtro de interface.
+ *
+ * A distinção tem consequência prática: cada tag é `<a href="/{municipio}/{bairro}">`, um
+ * destino real e indexável. Se fosse um filtro por JavaScript, o bloco não geraria nenhuma
+ * URL rastreável e a taxonomia geográfica — que é a aposta central do produto — não
+ * existiria para o buscador.
+ */
+interface Props {
+  neighborhoods: readonly NeighborhoodLink[];
+  title?: string | undefined;
+  level?: "h2" | "h3" | undefined;
+  class?: string | undefined;
+}
+
+const { neighborhoods, title = "Seu bairro agora", level = "h2", class: className } = Astro.props;
+
+const Heading = level;
+---
+
+<section class:list={["pd-tagbar", className]} aria-labelledby="pd-tagbar-title">
+  <header class="pd-tagbar__header">
+    <Icon name="map-pinned" size="sm" class="pd-tagbar__icon" />
+    <Heading class="pd-tagbar__title" id="pd-tagbar-title">{title}</Heading>
+  </header>
+
+  {
+    neighborhoods.length === 0 ? (
+      /* FR-014 — estado vazio explícito. Uma barra sem tags e sem texto parece defeito
+       de carregamento; dizer o que aconteceu custa uma linha. */
+      <p class="pd-tagbar__empty">Nenhum bairro com matéria nas últimas horas.</p>
+    ) : (
+      <ul class="pd-tagbar__list">
+        {neighborhoods.map((neighborhood) => (
+          <li>
+            <Tag
+              href={neighborhood.href}
+              count={neighborhood.count}
+              active={neighborhood.active ?? false}
+            >
+              {neighborhood.name}
+            </Tag>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</section>
+
+<style>
+  .pd-tagbar {
+    padding: var(--space-5);
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+  }
+
+  .pd-tagbar__header {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    margin-bottom: var(--space-4);
+  }
+
+  .pd-tagbar__icon {
+    color: var(--pd-blue-600);
+  }
+
+  .pd-tagbar__title {
+    margin: 0;
+    font: var(--type-section);
+    color: var(--text-strong);
+  }
+
+  .pd-tagbar__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-tagbar__empty {
+    margin: 0;
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+</style>

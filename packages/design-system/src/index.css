@@ -1,0 +1,200 @@
+/**
+ * Ponto de entrada único do Design System para as duas aplicações.
+ *
+ * D-04 / FR-003 — fonte única de verdade de token. O Tailwind aqui **referencia** as
+ * variáveis do DS por `@theme inline`; não copia valor nenhum. Trocar um token no arquivo
+ * vendorizado muda utilitária, componente e tema escuro no mesmo instante. Copiar valores
+ * criaria uma segunda fonte de verdade — exatamente o que o Princípio VI proíbe.
+ *
+ * Ordem importa:
+ *   1. tokens vendorizados (byte-idênticos, nunca editados)
+ *   2. overlays obrigatórios — as três substituições declaradas no plano
+ *   3. @theme inline — expõe os tokens ao Tailwind
+ */
+
+@import "tailwindcss";
+
+/* ——— 1. Tokens do DS importado ———————————————————————————————
+   `fonts.css` é o único token vendorizado NÃO importado: ele carrega as famílias por
+   @import do Google Fonts, o que colocaria um terceiro no caminho crítico (Princípio I e XI).
+   `theme/fonts-local.css` o substitui com @fontsource auto-hospedado e redeclara exatamente
+   os mesmos três nomes de token (D-08). */
+@import "../vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/colors.css";
+@import "../vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/typography.css";
+@import "../vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/spacing.css";
+@import "../vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/elevation.css";
+@import "../vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/motion.css";
+@import "../vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/base.css";
+
+/* ——— 2. Overlays obrigatórios (nunca por edição do vendor/) ——————— */
+@import "./theme/fonts-local.css"; /* D-08 — substitui tokens/fonts.css */
+@import "./theme/icons.css"; /* D-09 — Lucide inlinado, sem CDN */
+@import "./theme/contrast.css"; /* Princípio III — alias do tema claro abaixo de WCAG */
+@import "./theme/dark.css"; /* D-07 — tema escuro extraído do protótipo (vem DEPOIS de contrast.css) */
+@import "./theme/motion.css"; /* prefers-reduced-motion (T086) */
+
+/* ——— 3. Ponte para o Tailwind ————————————————————————————————
+   `inline` faz o Tailwind resolver var() na hora de gerar a utilitária, em vez de
+   redeclarar a variável — é isso que mantém uma única definição por token. */
+@theme inline {
+  /* Famílias.
+     Prefixo `pd-` onde o nome do DS coincidiria com o namespace do próprio Tailwind
+     (--font-*, --radius-*, --shadow-*, --ease-*): sem ele a chave do @theme e a variável
+     referenciada teriam o mesmo nome e a resolução seria circular. */
+  --font-pd-display: var(--font-display);
+  --font-pd-body: var(--font-body);
+  --font-pd-mono: var(--font-mono);
+
+  /* Rampa azul tecnológico */
+  --color-blue-950: var(--pd-blue-950);
+  --color-blue-900: var(--pd-blue-900);
+  --color-blue-800: var(--pd-blue-800);
+  --color-blue-700: var(--pd-blue-700);
+  --color-blue-600: var(--pd-blue-600);
+  --color-blue-500: var(--pd-blue-500);
+  --color-blue-400: var(--pd-blue-400);
+  --color-blue-200: var(--pd-blue-200);
+  --color-blue-100: var(--pd-blue-100);
+  --color-blue-50: var(--pd-blue-50);
+
+  /* Rampa sol / litoral */
+  --color-sun-900: var(--pd-sun-900);
+  --color-sun-700: var(--pd-sun-700);
+  --color-sun-600: var(--pd-sun-600);
+  --color-sun-500: var(--pd-sun-500);
+  --color-sun-400: var(--pd-sun-400);
+  --color-sun-300: var(--pd-sun-300);
+  --color-sun-100: var(--pd-sun-100);
+  --color-sun-50: var(--pd-sun-50);
+
+  /* Rampa mar do Delta — exclusiva de utilidade pública */
+  --color-mar-700: var(--pd-mar-700);
+  --color-mar-500: var(--pd-mar-500);
+  --color-mar-100: var(--pd-mar-100);
+
+  /* Neutros quentes */
+  --color-ink-950: var(--pd-ink-950);
+  --color-ink-900: var(--pd-ink-900);
+  --color-ink-800: var(--pd-ink-800);
+  --color-ink-700: var(--pd-ink-700);
+  --color-ink-600: var(--pd-ink-600);
+  --color-ink-500: var(--pd-ink-500);
+  --color-ink-400: var(--pd-ink-400);
+  --color-ink-300: var(--pd-ink-300);
+  --color-ink-200: var(--pd-ink-200);
+  --color-ink-100: var(--pd-ink-100);
+  --color-ink-50: var(--pd-ink-50);
+  --color-white: var(--pd-white);
+
+  /* Semânticas */
+  --color-urgent-700: var(--pd-urgent-700);
+  --color-urgent-600: var(--pd-urgent-600);
+  --color-urgent-100: var(--pd-urgent-100);
+  --color-success-600: var(--pd-success-600);
+  --color-success-100: var(--pd-success-100);
+
+  /* Zona de anúncio — cinza frio, jamais da paleta editorial */
+  --color-ad-bg: var(--pd-ad-bg);
+  --color-ad-border: var(--pd-ad-border);
+  --color-ad-ink: var(--pd-ad-ink);
+
+  /* Aliases semânticos. O tema escuro redefine estes e mais 17 degraus de rampa acima
+     (D-07); como `inline` resolve o var() no momento de gerar a utilitária, a troca de
+     tema alcança utilitária, componente e overlay pelo mesmo caminho. */
+  --color-text-strong: var(--text-strong);
+  --color-text-body: var(--text-body);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-text-inverse: var(--text-inverse);
+  --color-text-inverse-muted: var(--text-inverse-muted);
+  --color-text-link: var(--text-link);
+  --color-text-link-hover: var(--text-link-hover);
+  --color-text-brand: var(--text-brand);
+  --color-text-hot: var(--text-hot);
+  --color-text-urgent: var(--text-urgent);
+  --color-surface-page: var(--surface-page);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-card: var(--surface-card);
+  --color-surface-card-hover: var(--surface-card-hover);
+  --color-surface-header: var(--surface-header);
+  --color-surface-header-bar: var(--surface-header-bar);
+  --color-surface-brand: var(--surface-brand);
+  --color-surface-brand-soft: var(--surface-brand-soft);
+  --color-surface-hot: var(--surface-hot);
+  --color-surface-hot-soft: var(--surface-hot-soft);
+  --color-surface-context: var(--surface-context);
+  --color-surface-utility: var(--surface-utility);
+  --color-surface-ad: var(--surface-ad);
+  --color-surface-footer: var(--surface-footer);
+  --color-surface-photo-fallback: var(--surface-photo-fallback);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-border-brand: var(--border-brand);
+  --color-border-hot: var(--border-hot);
+  --color-border-ad: var(--border-ad);
+
+  /* Escala de espaço — base 4px do DS */
+  --spacing-0: var(--space-0);
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-7: var(--space-7);
+  --spacing-8: var(--space-8);
+  --spacing-9: var(--space-9);
+  --spacing-10: var(--space-10);
+  --spacing-11: var(--space-11);
+  --spacing-12: var(--space-12);
+
+  /* Raios — nada de 24px+: o portal deve parecer jornal, não app de banco. */
+  --radius-pd-xs: var(--radius-xs);
+  --radius-pd-sm: var(--radius-sm);
+  --radius-pd-md: var(--radius-md);
+  --radius-pd-lg: var(--radius-lg);
+  --radius-pd-xl: var(--radius-xl);
+  --radius-pd-pill: var(--radius-pill);
+
+  /* Sombras — 1 repouso, 2 hover, 3 chrome fixo, 4 só modal. */
+  --shadow-pd-1: var(--shadow-1);
+  --shadow-pd-2: var(--shadow-2);
+  --shadow-pd-3: var(--shadow-3);
+  --shadow-pd-4: var(--shadow-4);
+  --shadow-pd-brand-glow: var(--shadow-brand-glow);
+  --shadow-pd-hot-glow: var(--shadow-hot-glow);
+
+  /* Tamanhos de texto */
+  --text-3xs: var(--size-3xs);
+  --text-2xs: var(--size-2xs);
+  --text-xs: var(--size-xs);
+  --text-sm: var(--size-sm);
+  --text-md: var(--size-md);
+  --text-lg: var(--size-lg);
+  --text-xl: var(--size-xl);
+  --text-2xl: var(--size-2xl);
+  --text-3xl: var(--size-3xl);
+  --text-4xl: var(--size-4xl);
+  --text-5xl: var(--size-5xl);
+
+  /* Layout — a sidebar de 336px existe para o retângulo 336×280 encaixar exato */
+  --container-portal: var(--container-max);
+  --container-measure: var(--content-measure);
+  --container-sidebar: var(--sidebar-width);
+
+  /* Movimento — só duas durações na prática: 120ms hover/press, 200ms revelar. */
+  --ease-pd-out: var(--ease-out);
+  --ease-pd-in-out: var(--ease-in-out);
+  --animate-duration-fast: var(--dur-fast);
+  --animate-duration-base: var(--dur-base);
+
+  /* A virada para coluna única acontece em 900px — número declarado pelo readme do DS
+     ("abaixo de 900px tudo vira uma coluna e a sidebar migra para depois do 6º card").
+     O DS não publica token de breakpoint, então este é o ponto onde ele passa a existir:
+     definir aqui é o que impede o 900 de ser reescrito à mão em cada media query.
+     TODO(T148): devolver ao projeto de design junto do tema escuro e das 5 adições. */
+
+  /* check-tokens-disable-next-line -- definição do token, não uso de literal */
+  --breakpoint-portal: 900px;
+}

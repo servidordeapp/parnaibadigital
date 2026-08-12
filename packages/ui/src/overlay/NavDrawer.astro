@@ -1,0 +1,173 @@
+---
+import type { HeaderCity, HeaderSection } from "../navigation/types";
+
+import Icon from "../core/Icon.astro";
+
+/**
+ * **Adição justificada** (FR-007) — navegação móvel abaixo de 900px. O `SiteHeader` do DS
+ * não publica gaveta; o protótipo a implementa inline.
+ *
+ * A gaveta é `<details>`/`<summary>`, não um `<div>` controlado por script. Isso é o que a
+ * faz abrir, fechar, receber foco e ser anunciada corretamente **sem uma linha de
+ * JavaScript** — que é a exigência de FR-010 e do Princípio XI. O enriquecimento abaixo só
+ * acrescenta o que HTML não dá: fechar com `Esc` e travar a rolagem do fundo.
+ *
+ * Toda entrada é `<a href>` real, igual à navegação de desktop. Não há um segundo conjunto
+ * de destinos "para mobile" — dois conjuntos divergem, e a divergência aparece como link
+ * que só existe num tamanho de tela.
+ */
+interface Props {
+  sections: readonly HeaderSection[];
+  cities?: readonly HeaderCity[] | undefined;
+  class?: string | undefined;
+}
+
+const { sections, cities = [], class: className } = Astro.props;
+---
+
+<details class:list={["pd-drawer", className]} data-pd-drawer>
+  <summary class="pd-drawer__trigger" aria-label="Abrir navegação">
+    <Icon name="menu" size="md" />
+  </summary>
+
+  <div class="pd-drawer__panel">
+    <nav aria-label="Navegação do portal">
+      <ul class="pd-drawer__list">
+        {
+          sections.map((section) => (
+            <li>
+              <a
+                class="pd-drawer__link"
+                href={section.href}
+                aria-current={section.active === true ? "page" : undefined}
+              >
+                {section.label}
+                <Icon name="chevron-right" size="xs" />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    {
+      cities.length > 0 && (
+        <nav class="pd-drawer__cities" aria-label="Municípios">
+          <span class="pd-drawer__label">Cidades</span>
+          <ul class="pd-drawer__list">
+            {cities.map((city) => (
+              <li>
+                <a class="pd-drawer__link" href={city.href}>
+                  {city.name}
+                  <Icon name="chevron-right" size="xs" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
+
+    <a class="pd-drawer__link pd-drawer__link--search" href="/busca">
+      <Icon name="search" size="sm" />
+      Buscar no portal
+    </a>
+  </div>
+</details>
+
+<script>
+  import { initNavDrawer } from "./nav-drawer";
+
+  initNavDrawer();
+</script>
+
+<style>
+  .pd-drawer {
+    position: relative;
+  }
+
+  /* Acima de 900px a navegação horizontal do header assume; a gaveta some. */
+  @media (width >= 900px) {
+    .pd-drawer {
+      display: none;
+    }
+  }
+
+  .pd-drawer__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+    border-radius: var(--radius-sm);
+    color: var(--text-inverse);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  /* O marcador padrão do <summary> não pertence a um botão de ícone. */
+  .pd-drawer__trigger::-webkit-details-marker {
+    display: none;
+  }
+
+  .pd-drawer__trigger:focus-visible {
+    outline: var(--border-thick) solid var(--pd-sun-500);
+    outline-offset: var(--space-1);
+  }
+
+  .pd-drawer__panel {
+    position: absolute;
+    inset-inline-end: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    width: max-content;
+    /* largura mínima da gaveta (adição justificada, T064). Pedido de token aberto ao
+       projeto de design junto com o componente.
+       check-tokens-disable-next-line */
+    min-width: 240px;
+    max-width: 90vw;
+    margin-top: var(--space-3);
+    padding: var(--space-5);
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-4);
+  }
+
+  .pd-drawer__list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-drawer__link {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--tap-min);
+    padding: var(--space-3) var(--space-2);
+    border-bottom: var(--border-hair) solid var(--border-subtle);
+    font: var(--type-ui);
+    color: var(--text-strong);
+  }
+
+  .pd-drawer__link--search {
+    justify-content: flex-start;
+    border-bottom: none;
+    color: var(--text-brand);
+  }
+
+  .pd-drawer__label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font: var(--type-kicker);
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+</style>

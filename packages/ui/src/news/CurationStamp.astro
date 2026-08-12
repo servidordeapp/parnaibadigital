@@ -1,0 +1,108 @@
+---
+import type { CurationStamp } from "@parnaibadigital/types";
+
+import Icon from "../core/Icon.astro";
+
+/**
+ * FR-018 / Princípio V — o selo de transparência da Curadoria Inteligente.
+ *
+ * O DS é explícito: **nunca esconder**. É o que declara, na própria superfície onde a
+ * pessoa lê, que aquele texto passou por automação e por revisão humana. Retirá-lo de uma
+ * tela por falta de espaço transformaria conteúdo assistido em conteúdo indistinguível de
+ * apuração direta — e é exatamente essa confusão que o Princípio V existe para impedir.
+ *
+ * `data-pd-curation` é o gancho do teste sem JavaScript (T048): a asserção precisa de um
+ * alvo estável que não dependa de texto traduzido nem de classe de estilo.
+ */
+interface Props {
+  curation: CurationStamp;
+  /** Sobre o azul do hero e do rodapé, onde o texto precisa clarear. */
+  tone?: "light" | "dark" | undefined;
+  /** A pílula "Curadoria Inteligente" sai em linhas densas; o "atualizado há" fica. */
+  showLabel?: boolean | undefined;
+  class?: string | undefined;
+}
+
+const { curation, tone = "light", showLabel = true, class: className } = Astro.props;
+
+const minutesAgo = Math.max(0, Math.round((Date.now() - Date.parse(curation.updatedAt)) / 60_000));
+
+// O DS marca em verde só o que está fresco; passado disso o ponto fica neutro, sem alarme.
+const isFresh = minutesAgo <= 15;
+---
+
+<span
+  class:list={["pd-curation", `pd-curation--${tone}`, className]}
+  data-pd-curation={curation.kind}
+>
+  {
+    showLabel && (
+      <span class="pd-curation__badge">
+        <Icon name="sparkles" size="xs" />
+        Curadoria Inteligente
+        {curation.reviewedByHuman && (
+          <Icon name="badge-check" size="xs" title="Revisado por editor" />
+        )}
+      </span>
+    )
+  }
+
+  <span class="pd-curation__freshness">
+    <span class:list={["pd-curation__dot", isFresh && "pd-curation__dot--fresh"]}></span>
+    Atualizado há <time datetime={curation.updatedAt}>{minutesAgo} min</time>
+  </span>
+</span>
+
+<style>
+  .pd-curation {
+    display: inline-flex;
+    gap: var(--space-3);
+    align-items: center;
+    font: var(--type-meta);
+    color: var(--text-faint);
+    letter-spacing: var(--tracking-normal);
+  }
+
+  .pd-curation--dark {
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-curation__badge {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    padding: var(--space-1) var(--space-3) var(--space-1) var(--space-2);
+    border: var(--border-hair) solid var(--pd-blue-200);
+    border-radius: var(--radius-pill);
+    background: var(--pd-blue-50);
+    color: var(--pd-blue-700);
+  }
+
+  /* Sobre o azul escuro do hero a pílula clara sumiria; o DS usa transparência aqui. */
+  .pd-curation--dark .pd-curation__badge {
+    border-color: rgb(
+      255 255 255 / 24%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- transparência sobre chrome azul, declarada no readme do DS */
+    background: rgb(
+      255 255 255 / 8%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- par do valor acima, mesma origem */
+    color: var(--text-inverse);
+  }
+
+  .pd-curation__freshness {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+  }
+
+  .pd-curation__dot {
+    width: var(--space-3);
+    height: var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--pd-ink-300);
+  }
+
+  .pd-curation__dot--fresh {
+    background: var(--pd-success-600);
+  }
+</style>

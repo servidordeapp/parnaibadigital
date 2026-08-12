@@ -1,0 +1,75 @@
+---
+import "@parnaibadigital/design-system";
+
+import { THEME_INIT_SNIPPET } from "@parnaibadigital/ui";
+
+/**
+ * T043 / D-03 — casca de toda superfície do painel.
+ *
+ * Mesma stack e mesmo Design System do portal: é isso que torna `packages/ui` a definição
+ * única dos dois (SC-012). O que muda é o contorno, não a base.
+ *
+ * Diferença que importa: **nada aqui é indexável**. O `noindex,nofollow` é incondicional —
+ * não é prop, porque não existe tela de painel que devesse aparecer numa busca, e uma prop
+ * com padrão seguro ainda é uma prop que alguém pode passar errado. O bloqueio real fica na
+ * borda e no `robots.txt` do subdomínio (Princípio IV); a meta aqui é a segunda camada.
+ *
+ * Autenticação e sessão não existem nesta fase (FR-038). O painel é navegável por quem
+ * alcança o endereço, e é assim de propósito: o protótipo demonstra as telas, não o
+ * controle de acesso.
+ */
+interface Props {
+  title: string;
+  bodyClass?: string;
+}
+
+const { title, bodyClass } = Astro.props;
+---
+
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Painel ParnaíbaDigital</title>
+    <meta name="robots" content="noindex,nofollow" />
+
+    {/* D-07 — síncrono e primeiro, pelo mesmo motivo do portal. */}
+    <script is:inline set:html={THEME_INIT_SNIPPET} />
+
+    <slot name="head" />
+  </head>
+
+  <body class={bodyClass}>
+    <a class="pd-skip-link" href="#painel">Ir para o conteúdo</a>
+
+    {/* AdminSidebar entra em T096; até lá o slot deixa o lugar declarado em vez de vazio. */}
+    <slot name="sidebar" />
+
+    <main id="painel" tabindex="-1">
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style is:global>
+  .pd-skip-link {
+    position: absolute;
+    left: var(--space-3);
+    z-index: 999;
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-sm);
+    background: var(--surface-brand);
+    font: var(--type-ui);
+    color: var(--text-inverse);
+    transform: translateY(-200%);
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .pd-skip-link:focus-visible {
+    transform: translateY(var(--space-3));
+  }
+
+  main:focus {
+    outline: none;
+  }
+</style>

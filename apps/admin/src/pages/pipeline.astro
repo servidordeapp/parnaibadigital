@@ -1,0 +1,146 @@
+---
+import { pipelineStages } from "@parnaibadigital/api-client/mock/data/index";
+import { isIconName } from "@parnaibadigital/design-system/icons";
+import { Badge, Icon } from "@parnaibadigital/ui";
+
+import PanelLayout from "../layouts/PanelLayout.astro";
+
+/**
+ * T100 / Princípio V — o pipeline de IA, com a progressão animada do protótipo.
+ *
+ * Duas garantias, e a segunda é a razão de esta tela existir:
+ *
+ * 1. As 8 etapas aparecem **sempre**, na ordem fixa, no HTML entregue. A animação percorre
+ *    etapas já renderizadas; ela não as cria. Sem JavaScript, a lista completa continua lá.
+ * 2. A etapa "Editor — revisão humana obrigatória" **nunca é pulada**, nem visualmente. Ela
+ *    é marcada com `requiresHumanReview` no dado, destacada na tela e o teste de T088 a
+ *    exige presente em toda renderização. Representar a automação atravessando esse ponto
+ *    seria descrever um produto que a Constituição proíbe.
+ *
+ * A animação é CSS puro com `animation-delay` escalonado, e desaparece sob
+ * `prefers-reduced-motion` — o estado final, que é o informativo, permanece.
+ */
+/**
+ * `PipelineStage.icon` é `string` no contrato de tipos, porque `packages/types` não depende
+ * do Design System — e não deveria. A validação acontece aqui, na fronteira: um glifo fora
+ * do vocabulário fechado cai para `sparkles` em vez de quebrar a tela, e a checagem
+ * mantém o vocabulário fechado sem acoplar os dois pacotes (D-09).
+ */
+const stages = [...pipelineStages]
+  .sort((a, b) => a.order - b.order)
+  .map((stage) => ({
+    ...stage,
+    icon: isIconName(stage.icon) ? stage.icon : ("sparkles" as const),
+  }));
+---
+
+<PanelLayout
+  title="Pipeline de IA"
+  active="/pipeline"
+  lede="Do documento encontrado à publicação. A etapa de revisão humana não é pulável — nem na representação."
+>
+  <ol class="pd-pipeline">
+    {
+      stages.map((stage) => (
+        <li
+          class:list={["pd-pipeline__stage", stage.requiresHumanReview && "is-human"]}
+          style={`--pd-stage-index: ${String(stage.order)};`}
+          data-pd-stage={stage.key}
+        >
+          <span class="pd-pipeline__marker" aria-hidden="true">
+            {stage.order}
+          </span>
+
+          <div class="pd-pipeline__body">
+            <div class="pd-item__head">
+              <Icon name={stage.icon} size="sm" />
+              <h2 class="pd-pipeline__label">{stage.label}</h2>
+              {stage.requiresHumanReview && <Badge tone="hot">Obrigatória</Badge>}
+            </div>
+            <p class="pd-item__text">{stage.description}</p>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+
+  <p class="pd-panel__note">
+    Nenhum provedor de IA está integrado nesta fase (FR-038): a tela reproduz a sequência editorial,
+    não executa nada.
+  </p>
+</PanelLayout>
+
+<style>
+  .pd-pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: stage;
+  }
+
+  .pd-pipeline__stage {
+    display: grid;
+    grid-template-columns: var(--space-9) 1fr;
+    gap: var(--space-5);
+    align-items: start;
+    padding: var(--space-5);
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-1);
+
+    /* Entrada escalonada: cada etapa aparece depois da anterior, na cadência do protótipo.
+       `backwards` mantém o estado inicial antes do próprio atraso. */
+    animation: pd-stage-in var(--dur-base) var(--ease-out) backwards;
+    animation-delay: calc(var(--pd-stage-index) * var(--dur-slow));
+  }
+
+  .pd-pipeline__stage.is-human {
+    border-color: var(--border-hot);
+    background: var(--surface-context);
+  }
+
+  .pd-pipeline__marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--space-9);
+    height: var(--space-9);
+    border-radius: var(--radius-pill);
+    background: var(--surface-brand-soft);
+    font: var(--type-data);
+    color: var(--text-brand);
+  }
+
+  .pd-pipeline__stage.is-human .pd-pipeline__marker {
+    background: var(--surface-hot);
+    color: var(--pd-ink-950);
+  }
+
+  .pd-pipeline__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .pd-pipeline__label {
+    margin: 0;
+    font: var(--type-headline-sm);
+    color: var(--text-strong);
+  }
+
+  @keyframes pd-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(var(--space-3));
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

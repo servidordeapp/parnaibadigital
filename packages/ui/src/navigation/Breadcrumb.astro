@@ -1,0 +1,84 @@
+---
+import Icon from "../core/Icon.astro";
+
+import type { BreadcrumbItem } from "./types";
+
+/**
+ * T040 — trilha de navegação, como o DS a declara (`nav aria-label="Trilha"`, separador
+ * `chevron-right`, tipo `--type-meta`).
+ *
+ * O último item é a página corrente: não é link e recebe `aria-current="page"`. Fazer dele
+ * um `<a>` para si mesmo é o erro clássico da trilha — anuncia um destino que não leva a
+ * lugar nenhum.
+ *
+ * A marcação `BreadcrumbList` de SEO (Princípio II) NÃO sai daqui: ela é emitida por
+ * `StructuredData.astro` (T079) a partir dos mesmos dados. Um componente visual que também
+ * imprime JSON-LD cria duas fontes de verdade para a mesma trilha.
+ */
+interface Props {
+  items: BreadcrumbItem[];
+  class?: string | undefined;
+}
+
+const { items, class: className } = Astro.props;
+---
+
+<nav class:list={["pd-breadcrumb", className]} aria-label="Trilha">
+  <ol class="pd-breadcrumb__list">
+    {
+      items.map((item, index) => {
+        const isLast = index === items.length - 1;
+        return (
+          <li class="pd-breadcrumb__item">
+            {isLast || item.href === undefined ? (
+              <span class="pd-breadcrumb__current" aria-current={isLast ? "page" : undefined}>
+                {item.label}
+              </span>
+            ) : (
+              <a class="pd-breadcrumb__link" href={item.href}>
+                {item.label}
+              </a>
+            )}
+            {!isLast && <Icon name="chevron-right" size="xs" class="pd-breadcrumb__sep" />}
+          </li>
+        );
+      })
+    }
+  </ol>
+</nav>
+
+<style>
+  .pd-breadcrumb {
+    font: var(--type-meta);
+    color: var(--text-faint);
+  }
+
+  .pd-breadcrumb__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .pd-breadcrumb__item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .pd-breadcrumb__link {
+    font: var(--type-meta);
+    color: var(--text-link);
+  }
+
+  .pd-breadcrumb__current {
+    color: var(--text-muted);
+  }
+
+  .pd-breadcrumb__sep {
+    color: var(--text-faint);
+  }
+</style>

@@ -1,0 +1,115 @@
+---
+import type { IconName } from "@parnaibadigital/design-system/icons";
+
+import Icon from "../core/Icon.astro";
+
+/**
+ * Casca dos blocos de serviço da barra lateral, sobre a superfície `--surface-utility` —
+ * o terciário mar/Delta que o DS reserva a utilidade pública.
+ *
+ * A cor não é escolha decorativa: é o que separa, num relance, "serviço ao morador" de
+ * "conteúdo editorial". Usar a superfície de card comum aqui apagaria essa distinção, que é
+ * a única pista visual de que aquele bloco não é notícia.
+ */
+interface Props {
+  title: string;
+  icon: IconName;
+  /** Nível do título — a barra lateral fica dentro de páginas com hierarquias diferentes. */
+  level?: "h2" | "h3" | undefined;
+  accent?: "utility" | "brand" | undefined;
+  /** "Atualizado às 06h10" — a procedência do dado automatizado (Princípio V). */
+  updatedLabel?: string | undefined;
+  footerLabel?: string | undefined;
+  footerHref?: string | undefined;
+  class?: string | undefined;
+}
+
+const {
+  title,
+  icon,
+  level = "h2",
+  accent = "utility",
+  updatedLabel,
+  footerLabel,
+  footerHref,
+  class: className,
+} = Astro.props;
+
+const Heading = level;
+const showFooter = footerLabel !== undefined && footerHref !== undefined;
+---
+
+<section class:list={["pd-widget", `pd-widget--${accent}`, className]}>
+  <header class="pd-widget__header">
+    <Icon name={icon} size="sm" class="pd-widget__icon" />
+    <Heading class="pd-widget__title">{title}</Heading>
+    {updatedLabel !== undefined && <span class="pd-widget__updated">{updatedLabel}</span>}
+  </header>
+
+  <div class="pd-widget__body">
+    <slot />
+  </div>
+
+  {
+    showFooter && (
+      <a class="pd-widget__footer" href={footerHref}>
+        {footerLabel}
+        <Icon name="chevron-right" size="xs" />
+      </a>
+    )
+  }
+</section>
+
+<style>
+  .pd-widget {
+    padding: var(--space-5);
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-utility);
+  }
+
+  .pd-widget--brand {
+    background: var(--surface-card);
+  }
+
+  .pd-widget__header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: center;
+    margin-bottom: var(--space-4);
+  }
+
+  .pd-widget__icon {
+    color: var(--pd-mar-700);
+  }
+
+  .pd-widget--brand .pd-widget__icon {
+    color: var(--pd-blue-600);
+  }
+
+  .pd-widget__title {
+    margin: 0;
+    font: var(--type-section);
+    color: var(--text-strong);
+  }
+
+  .pd-widget__updated {
+    margin-left: auto;
+    font: var(--type-meta);
+    /* Correção de contraste (Princípio III, SC-004): `--text-faint` (= `--pd-ink-500`) rende
+       4,04:1 sobre `--surface-utility` — abaixo de 4,5:1. `--text-faint` segue válido para
+       texto grande e elemento decorativo; para meta em corpo pequeno sobre fundo tingido, o
+       degrau certo é `--text-muted`. Nenhuma cor nova entra no sistema. */
+    color: var(--text-muted);
+  }
+
+  .pd-widget__footer {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    margin-top: var(--space-4);
+    font: var(--type-ui-sm);
+    color: var(--text-link);
+  }
+</style>

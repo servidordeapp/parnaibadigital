@@ -1,0 +1,23 @@
+{
+  "name": "@parnaibadigital/validation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Schemas Zod espelhando o OpenAPI e as 7 regras transversais — build/servidor apenas (D-11).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas": "./src/schemas/index.ts",
+    "./rules": "./src/rules.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@parnaibadigital/types": "workspace:*",
+    "zod": "^4.1.13"
+  }
+}

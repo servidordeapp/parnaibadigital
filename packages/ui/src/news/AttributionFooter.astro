@@ -1,0 +1,104 @@
+---
+import Icon from "../core/Icon.astro";
+
+/**
+ * FR-018 / Princípio V — o rodapé de atribuição.
+ *
+ * Este componente é a contrapartida concreta de uma promessa editorial: quando o texto
+ * nasce de apuração de terceiro, a matéria diz de quem, com link para o original. Sem ele,
+ * curadoria vira apropriação — e o produto inteiro se apoia em não ser isso.
+ *
+ * O link sai com `rel="nofollow noopener"`: a atribuição é obrigação editorial, não sinal
+ * de endosso de SEO, e `noopener` fecha o acesso ao `window.opener` do destino.
+ *
+ * `data-pd-attribution` é o alvo estável do teste sem JavaScript (T048).
+ */
+interface Props {
+  sourceName: string;
+  sourceUrl: string;
+  /** Cópia arquivada, quando existe — o original pode sair do ar. */
+  archivedUrl?: string | undefined;
+  publishedAt: string;
+  reviewedBy?: string | undefined;
+  class?: string | undefined;
+}
+
+const {
+  sourceName,
+  sourceUrl,
+  archivedUrl,
+  publishedAt,
+  reviewedBy = "Redação ParnaíbaDigital",
+  class: className,
+} = Astro.props;
+
+const publishedLabel = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+}).format(new Date(publishedAt));
+---
+
+<footer class:list={["pd-attribution", className]} data-pd-attribution>
+  <p class="pd-attribution__source">
+    <Icon name="link-2" size="xs" class="pd-attribution__icon" />
+    Informações originais publicadas por{" "}
+    <a class="pd-attribution__link" href={sourceUrl} rel="nofollow noopener">{sourceName}</a>. Leia
+    a matéria completa na fonte.
+    {
+      archivedUrl !== undefined && (
+        <>
+          {" "}
+          <a class="pd-attribution__link" href={archivedUrl} rel="nofollow noopener">
+            Cópia arquivada
+          </a>
+          .
+        </>
+      )
+    }
+  </p>
+
+  <p class="pd-attribution__review">
+    Curadoria automatizada com revisão humana · {reviewedBy} · publicado em{" "}
+    <time datetime={publishedAt}>{publishedLabel}</time>
+  </p>
+</footer>
+
+<style>
+  .pd-attribution {
+    margin-top: var(--space-8);
+    padding: var(--space-5);
+    border-top: var(--border-accent) solid var(--pd-blue-600);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    background: var(--surface-subtle);
+  }
+
+  .pd-attribution__source {
+    margin: 0;
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+
+  .pd-attribution__icon {
+    vertical-align: -0.2em;
+    margin-right: var(--space-2);
+  }
+
+  .pd-attribution__link {
+    font: var(--type-ui-sm);
+    color: var(--text-link);
+  }
+
+  .pd-attribution__link:hover {
+    color: var(--text-link-hover);
+  }
+
+  .pd-attribution__review {
+    margin: var(--space-3) 0 0;
+    font: var(--type-meta);
+    /* Correção de contraste (Princípio III, SC-004): `--text-faint` (= `--pd-ink-500`) rende
+       4,29:1 sobre `--surface-subtle` — abaixo de 4,5:1. `--text-faint` segue válido para
+       texto grande e elemento decorativo; para meta em corpo pequeno sobre fundo tingido, o
+       degrau certo é `--text-muted`. Nenhuma cor nova entra no sistema. */
+    color: var(--text-muted);
+  }
+</style>

@@ -1,0 +1,100 @@
+/* ParnaíbaDigital color system.
+   Two engines: AZUL TECNOLÓGICO (confiança, digital, automação) and
+   SOL/LITORAL (calor, identidade parnaibana). Sea teal is a tertiary used only
+   for public-utility widgets. Neutrals are warm-tinted so photos of the Delta
+   and the dunes sit naturally on the page. */
+:root {
+  /* — Azul tecnológico — */
+  --pd-blue-950: #04162c;
+  --pd-blue-900: #082246;
+  --pd-blue-800: #0c3269;
+  --pd-blue-700: #0f4291;
+  --pd-blue-600: #1257d6;
+  --pd-blue-500: #2e74f0;
+  --pd-blue-400: #5c97f7;
+  --pd-blue-200: #b9d2fb;
+  --pd-blue-100: #deeafd;
+  --pd-blue-50: #f2f7fe;
+
+  /* — Sol / litoral (quente) — */
+  --pd-sun-900: #7a3103;
+  --pd-sun-700: #b85706;
+  --pd-sun-600: #dc6d08;
+  --pd-sun-500: #f58220;
+  --pd-sun-400: #ffa245;
+  --pd-sun-300: #ffc57c;
+  --pd-sun-100: #ffeeda;
+  --pd-sun-50: #fff8f0;
+
+  /* — Mar / Delta (tercária, só utilidade pública) — */
+  --pd-mar-700: #0a6c74;
+  --pd-mar-500: #12a0a8;
+  --pd-mar-100: #dcf3f4;
+
+  /* — Neutros quentes — */
+  --pd-ink-950: #14120f;
+  --pd-ink-900: #1f1c18;
+  --pd-ink-800: #2e2a25;
+  --pd-ink-700: #443f38;
+  --pd-ink-600: #5c564d;
+  --pd-ink-500: #7a736a;
+  --pd-ink-400: #9d968c;
+  --pd-ink-300: #c4beb5;
+  --pd-ink-200: #e2ded7;
+  --pd-ink-100: #efece7;
+  --pd-ink-50: #f7f5f2;
+  --pd-white: #ffffff;
+
+  /* — Semânticas — */
+  --pd-urgent-700: #97110d;
+  --pd-urgent-600: #c8241f;
+  --pd-urgent-100: #fde7e4;
+  --pd-success-600: #15784c;
+  --pd-success-100: #e2f4ea;
+  --pd-info-600: var(--pd-blue-600);
+  --pd-info-100: var(--pd-blue-100);
+
+  /* — Zona de anúncio (cinza neutro frio, nunca da paleta editorial) — */
+  --pd-ad-bg: #eceef1;
+  --pd-ad-border: #d7dae0;
+  --pd-ad-ink: #868c96;
+
+  /* ————— Aliases semânticos ————— */
+  --text-strong: var(--pd-ink-950);
+  --text-body: var(--pd-ink-800);
+  --text-muted: var(--pd-ink-600);
+  --text-faint: var(--pd-ink-500);
+  --text-inverse: var(--pd-white);
+  --text-inverse-muted: #b6c6de;
+  --text-link: var(--pd-blue-700);
+  --text-link-hover: var(--pd-blue-500);
+  --text-brand: var(--pd-blue-700);
+  --text-hot: var(--pd-sun-700);
+  --text-urgent: var(--pd-urgent-600);
+
+  --surface-page: var(--pd-white);
+  --surface-subtle: var(--pd-ink-50);
+  --surface-card: var(--pd-white);
+  --surface-card-hover: var(--pd-blue-50);
+  --surface-header: var(--pd-blue-900);
+  --surface-header-bar: var(--pd-blue-950);
+  --surface-brand: var(--pd-blue-600);
+  --surface-brand-soft: var(--pd-blue-100);
+  --surface-hot: var(--pd-sun-500);
+  --surface-hot-soft: var(--pd-sun-100);
+  --surface-context: var(--pd-sun-50);
+  --surface-utility: var(--pd-mar-100);
+  --surface-ad: var(--pd-ad-bg);
+  --surface-footer: var(--pd-blue-950);
+  --surface-photo-fallback: var(--pd-blue-100);
+
+  --border-subtle: var(--pd-ink-100);
+  --border-default: var(--pd-ink-200);
+  --border-strong: var(--pd-ink-300);
+  --border-brand: var(--pd-blue-600);
+  --border-hot: var(--pd-sun-300);
+  --border-ad: var(--pd-ad-border);
+
+  --focus-ring: 0 0 0 3px var(--pd-blue-200);
+  --focus-ring-hot: 0 0 0 3px var(--pd-sun-300);
+}

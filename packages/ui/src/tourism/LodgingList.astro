@@ -1,0 +1,64 @@
+---
+import type { Lodging } from "./types";
+
+import LodgingCard from "./LodgingCard.astro";
+import SectionHeading from "../news/SectionHeading.astro";
+
+/**
+ * Grade de hospedagens. Existe como componente próprio — em vez de a tela repetir o `map` —
+ * porque o estado vazio e a densidade da grade são decisões do Design System, e replicá-las
+ * em cada consumidor é como duas telas passam a divergir sem ninguém decidir que deveriam.
+ */
+interface Props {
+  items: readonly Lodging[];
+  title?: string | undefined;
+  href?: string | undefined;
+  level?: "h2" | "h3" | undefined;
+  class?: string | undefined;
+}
+
+const { items, title = "Onde ficar", href, level = "h2", class: className } = Astro.props;
+---
+
+<section class:list={["pd-lodging-list", className]}>
+  <SectionHeading
+    level={level}
+    linkLabel={href === undefined ? undefined : "Ver todas"}
+    href={href}
+  >
+    {title}
+  </SectionHeading>
+
+  {
+    items.length === 0 ? (
+      <p class="pd-lodging-list__empty">Nenhuma hospedagem cadastrada para esta região ainda.</p>
+    ) : (
+      <ul class="pd-lodging-list__grid">
+        {items.map((lodging) => (
+          <li>
+            <LodgingCard lodging={lodging} level={level === "h2" ? "h3" : "h3"} />
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</section>
+
+<style>
+  .pd-lodging-list__grid {
+    display: grid;
+    /* piso da trilha do grid de hospedagem — o DS não tokeniza trilha de grid.
+       check-tokens-disable-next-line */
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-lodging-list__empty {
+    margin: 0;
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+</style>

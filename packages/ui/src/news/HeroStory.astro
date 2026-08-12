@@ -1,0 +1,176 @@
+---
+import type { CurationStamp as Curation, MediaRef } from "@parnaibadigital/types";
+
+import Badge from "../core/Badge.astro";
+import PhotoFrame from "../core/PhotoFrame.astro";
+import CurationStamp from "./CurationStamp.astro";
+
+/**
+ * Manchete principal: foto sangrada, véu de proteção e título sobre a imagem.
+ *
+ * O DS impõe duas coisas que o componente não deixa negociar: **uma por página** e o bairro
+ * sempre no kicker. A segunda é o que dá ao produto a assinatura geográfica — a pessoa
+ * reconhece a própria rua antes de ler o título.
+ *
+ * O título aqui é `h2`, não `h1`: na home o `h1` é da página, e um hero que tomasse esse
+ * nível quebraria o esboço do documento. Quando a manchete precisa ser o `h1`, quem decide
+ * é a tela, por `headingLevel`.
+ */
+interface Props {
+  headline: string;
+  href: string;
+  /** "Pedra do Sal · Luís Correia" — a tela monta; o componente não decide (FR-026). */
+  place: string;
+  standfirst?: string | undefined;
+  kicker?: string | undefined;
+  curation: Curation;
+  image?: MediaRef | undefined;
+  headingLevel?: "h1" | "h2" | undefined;
+  class?: string | undefined;
+}
+
+const {
+  headline,
+  href,
+  place,
+  standfirst,
+  kicker = "Destaque",
+  curation,
+  image,
+  headingLevel = "h2",
+  class: className,
+} = Astro.props;
+
+const Heading = headingLevel;
+---
+
+<a class:list={["pd-hero", className]} href={href}>
+  {
+    /* Sem foto o DS manda para o gradiente azul→sol; o PhotoFrame entra só quando há
+     imagem real, e sempre com width/height, que é o que reserva a caixa (T085). */
+  }
+  <span class="pd-hero__backdrop">
+    {
+      image !== undefined && (
+        <PhotoFrame media={image} ratio="16/9" priority class="pd-hero__photo" />
+      )
+    }
+  </span>
+
+  <span class="pd-hero__scrim"></span>
+
+  <span class="pd-hero__body">
+    <span class="pd-hero__meta">
+      <Badge tone="hot">{kicker}</Badge>
+      <span class="pd-hero__place">{place}</span>
+    </span>
+
+    <Heading class="pd-hero__headline">{headline}</Heading>
+
+    {standfirst !== undefined && <p class="pd-hero__standfirst">{standfirst}</p>}
+
+    <CurationStamp curation={curation} tone="dark" />
+  </span>
+</a>
+
+<style>
+  .pd-hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+
+    /* A altura sai da proporção, não de um número: o hero é o LCP da home, e uma caixa
+       que só ganha altura depois da imagem chegar é a origem clássica de layout shift
+       (Princípio I). `aspect-ratio` reserva o espaço no primeiro cálculo de layout.
+       Em 1280px a coluna dá ~840px, o que devolve os ~460px do protótipo; em 360px a
+       proporção 4/3 evita o hero-faixa ilegível que 16/9 produziria. */
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--pd-blue-800);
+    box-shadow: var(--shadow-1);
+    text-decoration: none;
+    transition: var(--transition-interactive);
+  }
+
+  .pd-hero:hover {
+    box-shadow: var(--shadow-2);
+  }
+
+  .pd-hero__backdrop {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      140deg,
+      var(--pd-blue-800),
+      var(--pd-blue-600) 58%,
+      var(--pd-sun-600)
+    );
+    transition: transform var(--dur-slow) var(--ease-out);
+  }
+
+  .pd-hero:hover .pd-hero__backdrop {
+    transform: scale(1.02);
+  }
+
+  .pd-hero__photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .pd-hero__scrim {
+    position: absolute;
+    inset: 0;
+    background: var(--scrim-photo);
+  }
+
+  .pd-hero__body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    width: 100%;
+    padding: var(--space-10) var(--space-7) var(--space-7);
+  }
+
+  .pd-hero__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: center;
+  }
+
+  .pd-hero__place {
+    font: var(--type-kicker);
+    color: var(--pd-sun-300);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-hero__headline {
+    max-width: 18ch;
+    margin: 0;
+    font: var(--type-hero);
+    color: var(--text-inverse);
+    text-wrap: balance;
+  }
+
+  .pd-hero__standfirst {
+    max-width: 52ch;
+    margin: 0;
+    font: var(--type-body-sm);
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-hero:focus-visible {
+    outline: var(--border-thick) solid var(--pd-sun-500);
+    outline-offset: var(--space-1);
+  }
+
+  @media (width >= 900px) {
+    .pd-hero {
+      aspect-ratio: 16 / 9;
+    }
+  }
+</style>

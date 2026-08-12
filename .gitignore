@@ -1,0 +1,45 @@
+# Dependências
+node_modules/
+.pnpm-store/
+backend/api/vendor/
+
+# Artefatos de construção
+dist/
+build/
+.astro/
+.output/
+.vercel/
+*.tsbuildinfo
+
+# Testes e medição
+coverage/
+.lighthouseci/
+# Perfis temporários do Chrome. Sob WSL, o `chrome-launcher` do Lighthouse herda `TMP` do
+# Windows e cria o diretório com o caminho literal `C:\Users\...` aqui na raiz. É lixo de
+# execução, mas o Prettier o varre e reprova `pnpm lint` — daí ser ignorado, não só apagado.
+C:*
+lighthouse-report*
+playwright-report/
+test-results/
+.shots/
+blob-report/
+.playwright/
+
+# Ambiente — nunca versionar segredo
+.env
+.env.*
+!.env.example
+
+# Logs e temporários
+*.log
+npm-debug.log*
+pnpm-debug.log*
+*.tmp
+*.swp
+
+# Sistema operacional e editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

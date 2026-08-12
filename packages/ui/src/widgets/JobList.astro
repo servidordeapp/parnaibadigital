@@ -1,0 +1,123 @@
+---
+import type { UtilityItem } from "@parnaibadigital/types";
+
+import Badge from "../core/Badge.astro";
+import WidgetCard from "./WidgetCard.astro";
+
+/**
+ * Vagas de emprego da barra lateral, alimentadas pelo grupo `empregos` de `UtilityItem` —
+ * a mesma coleção que a tela de utilidade pública usa.
+ *
+ * Uma segunda fonte só para o widget faria a barra lateral e a página de utilidade pública
+ * divergirem no primeiro acréscimo, e a divergência apareceria como "o site mostra vaga que
+ * não existe na listagem". Uma origem, duas apresentações.
+ */
+interface Props {
+  items: readonly UtilityItem[];
+  /** Total de vagas abertas na região, quando a tela sabe calculá-lo. */
+  totalLabel?: string | undefined;
+  href?: string | undefined;
+  level?: "h2" | "h3" | undefined;
+  class?: string | undefined;
+}
+
+const {
+  items,
+  totalLabel,
+  href = "/utilidade-publica",
+  level = "h2",
+  class: className,
+} = Astro.props;
+
+const currency = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  maximumFractionDigits: 0,
+});
+---
+
+<WidgetCard
+  title="Vagas de emprego"
+  icon="briefcase"
+  level={level}
+  updatedLabel={totalLabel}
+  footerLabel="Ver todas as vagas"
+  footerHref={href}
+  class={className}
+>
+  {
+    items.length === 0 ? (
+      <p class="pd-joblist__empty">Nenhuma vaga aberta nas fontes acompanhadas hoje.</p>
+    ) : (
+      <ul class="pd-joblist">
+        {items.map((job) => (
+          <li class="pd-joblist__item">
+            <div class="pd-joblist__head">
+              <Badge tone="soft">{job.statusBadge}</Badge>
+              <span class="pd-joblist__agency">{job.agency}</span>
+            </div>
+            <span class="pd-joblist__title">{job.title}</span>
+            {job.amount !== undefined && (
+              <span class="pd-joblist__amount">{currency.format(job.amount)}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</WidgetCard>
+
+<style>
+  .pd-joblist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-joblist__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-bottom: var(--space-3);
+    border-bottom: var(--border-hair) solid var(--border-subtle);
+  }
+
+  .pd-joblist__item:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .pd-joblist__head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: center;
+  }
+
+  .pd-joblist__agency {
+    font: var(--type-meta);
+
+    /* Correção de contraste (Princípio III, SC-004): `--text-faint` (= `--pd-ink-500`) rende
+       4,04:1 sobre `--surface-utility`, abaixo de 4,5:1. */
+    color: var(--text-muted);
+  }
+
+  .pd-joblist__title {
+    font: var(--type-ui);
+    color: var(--text-strong);
+  }
+
+  .pd-joblist__amount {
+    font: var(--type-data);
+    color: var(--pd-mar-700);
+  }
+
+  .pd-joblist__empty {
+    margin: 0;
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+</style>

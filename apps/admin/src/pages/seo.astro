@@ -1,0 +1,90 @@
+---
+import { getDataClient } from "@parnaibadigital/api-client";
+import { Badge, DataTable, SectionHeading } from "@parnaibadigital/ui";
+
+import PanelLayout from "../layouts/PanelLayout.astro";
+
+/**
+ * T104 — SEO.
+ *
+ * A tela reflete `contracts/routes.md`: cada superfície tem schema, canônica, sitemap e
+ * vínculo geográfico declarados. Os avisos abaixo são derivados do conteúdo real, não de
+ * uma lista fixa — matéria sem linha de apoio não tem meta description, e é isso que o
+ * painel precisa apontar.
+ */
+const client = getDataClient();
+const result = await client.news.list({ perPage: 100 });
+
+const missingStandfirst = result.data.filter((article) => article.standfirst === undefined);
+const missingImage = result.data.filter((article) => article.image === undefined);
+const missingNeighborhood = result.data.filter((article) => article.neighborhoodIds.length === 0);
+
+const SURFACES = [
+  { route: "/", schema: "WebSite + Organization", sitemap: "sitemap-core.xml" },
+  { route: "/noticia/{slug}", schema: "NewsArticle + BreadcrumbList", sitemap: "sitemap-news.xml" },
+  {
+    route: "/editoria/{slug}",
+    schema: "CollectionPage + BreadcrumbList",
+    sitemap: "sitemap-sections.xml",
+  },
+  { route: "/{municipio}", schema: "Place + CollectionPage", sitemap: "sitemap-places.xml" },
+  { route: "/{municipio}/{bairro}", schema: "Place (contido em)", sitemap: "sitemap-places.xml" },
+  { route: "/eventos", schema: "ItemList de Event", sitemap: "sitemap-core.xml" },
+  { route: "/busca", schema: "WebSite SearchAction", sitemap: "não indexável" },
+];
+---
+
+<PanelLayout
+  title="SEO"
+  active="/seo"
+  lede="A declaração de SEO por superfície e os avisos que o conteúdo gera hoje."
+>
+  <section class="pd-panel__section" aria-label="Avisos">
+    <SectionHeading level="h2">Avisos do acervo</SectionHeading>
+    <ul class="pd-panel__list">
+      <li class="pd-panel__card">
+        <Badge tone={missingStandfirst.length === 0 ? "utility" : "hot"}>
+          {missingStandfirst.length === 0 ? "Sem pendência" : "Atenção"}
+        </Badge>
+        <p class="pd-item__text">
+          {missingStandfirst.length} matéria(s) sem linha de apoio — sem ela a meta description cai para
+          a manchete repetida.
+        </p>
+      </li>
+      <li class="pd-panel__card">
+        <Badge tone={missingImage.length === 0 ? "utility" : "hot"}>
+          {missingImage.length === 0 ? "Sem pendência" : "Atenção"}
+        </Badge>
+        <p class="pd-item__text">
+          {missingImage.length} matéria(s) sem imagem própria — o compartilhamento usa a imagem padrão
+          da marca. O produto não tem banco de fotos nesta fase.
+        </p>
+      </li>
+      <li class="pd-panel__card">
+        <Badge tone={missingNeighborhood.length === 0 ? "utility" : "brand"}>
+          {missingNeighborhood.length === 0 ? "Sem pendência" : "Informativo"}
+        </Badge>
+        <p class="pd-item__text">
+          {missingNeighborhood.length} matéria(s) com vínculo apenas municipal. É estado legítimo — nem
+          todo fato pertence a um bairro.
+        </p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="pd-panel__section" aria-label="Declaração por superfície">
+    <SectionHeading level="h2" accent="blue">Declaração por superfície</SectionHeading>
+    <DataTable
+      caption="Schema, sitemap e canônica por rota (contracts/routes.md)"
+      columns={[
+        { key: "route", label: "Rota" },
+        { key: "schema", label: "JSON-LD" },
+        { key: "sitemap", label: "Sitemap" },
+      ]}
+      rows={SURFACES.map((surface) => ({
+        id: surface.route,
+        cells: { ...surface },
+      }))}
+    />
+  </section>
+</PanelLayout>

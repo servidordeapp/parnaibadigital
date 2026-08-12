@@ -1,0 +1,46 @@
+/* 4px base. Layout tokens include the exact AdSense unit sizes the portal
+   reserves, so slots never cause layout shift. */
+:root {
+  --space-0: 0;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 20px;
+  --space-7: 24px;
+  --space-8: 32px;
+  --space-9: 40px;
+  --space-10: 48px;
+  --space-11: 64px;
+  --space-12: 80px;
+
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --border-hair: 1px;
+  --border-thick: 2px;
+  --border-accent: 3px;
+
+  --container-max: 1200px;
+  --container-gutter: var(--space-5);
+  --content-measure: 680px;
+  --sidebar-width: 336px;
+  --grid-gap: var(--space-7);
+  --grid-gap-tight: var(--space-5);
+  --header-height: 64px;
+  --tap-min: 44px;
+
+  /* AdSense */
+  --ad-leaderboard-h: 90px;
+  --ad-billboard-h: 250px;
+  --ad-mobile-banner-h: 100px;
+  --ad-rect-w: 336px;
+  --ad-rect-h: 280px;
+  --ad-halfpage-h: 600px;
+  --ad-inread-h: 250px;
+}

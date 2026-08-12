@@ -1,0 +1,138 @@
+---
+import type { MediaRef } from "@parnaibadigital/types";
+
+import PhotoFrame from "../core/PhotoFrame.astro";
+
+/**
+ * Linha densa das colunas "Mais lidas" e dos feeds longos. A variante numerada é a do
+ * ranking — o número em cor-de-sol é o que o DS usa para marcar posição.
+ *
+ * O título é `h3` por padrão: nos dois lugares onde a lista aparece — "Mais lidas" na home e
+ * na coluna do artigo — a seção que a contém tem `h2`, e `h4` produzia um salto de h2 para h4
+ * no esboço do documento (WCAG 1.3.1, `heading-order` do axe). `h4` continua disponível por
+ * `headingLevel` para quando a lista estiver de fato um nível mais fundo.
+ */
+interface Props {
+  headline: string;
+  href: string;
+  place: string;
+  publishedAt: string;
+  /** Posição no ranking. Ausente = lista comum, sem numeração. */
+  index?: number | undefined;
+  image?: MediaRef | undefined;
+  showPhoto?: boolean | undefined;
+  headingLevel?: "h3" | "h4" | undefined;
+  class?: string | undefined;
+}
+
+const {
+  headline,
+  href,
+  place,
+  publishedAt,
+  index,
+  image,
+  showPhoto = true,
+  headingLevel = "h3",
+  class: className,
+} = Astro.props;
+
+const Heading = headingLevel;
+
+const minutesAgo = Math.max(0, Math.round((Date.now() - Date.parse(publishedAt)) / 60_000));
+---
+
+<a
+  class:list={[
+    "pd-list-item",
+    index !== undefined && "pd-list-item--ranked",
+    showPhoto && "pd-list-item--with-photo",
+    className,
+  ]}
+  href={href}
+>
+  {
+    /* `aria-hidden` no número: o leitor de tela já anuncia a posição pela ordem da lista;
+     lê-lo de novo transformaria "1" em ruído antes de cada manchete. */
+  }
+  {
+    index !== undefined && (
+      <span class="pd-list-item__rank" aria-hidden="true">
+        {index}
+      </span>
+    )
+  }
+
+  {showPhoto && <PhotoFrame media={image} ratio="1/1" radius="sm" class="pd-list-item__photo" />}
+
+  <span class="pd-list-item__content">
+    <span class="pd-list-item__place">{place}</span>
+    <Heading class="pd-list-item__headline">{headline}</Heading>
+    <time class="pd-list-item__time" datetime={publishedAt}>há {minutesAgo} min</time>
+  </span>
+</a>
+
+<style>
+  .pd-list-item {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    align-items: start;
+    padding: var(--space-4) var(--space-2);
+    border-bottom: var(--border-hair) solid var(--border-subtle);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .pd-list-item--with-photo {
+    grid-template-columns: var(--space-12) 1fr;
+  }
+
+  .pd-list-item--ranked {
+    grid-template-columns: var(--space-8) 1fr;
+  }
+
+  .pd-list-item--ranked.pd-list-item--with-photo {
+    grid-template-columns: var(--space-8) var(--space-12) 1fr;
+  }
+
+  .pd-list-item__rank {
+    font: var(--weight-bold) var(--size-xl) / 1 var(--font-display);
+    color: var(--pd-sun-500);
+  }
+
+  .pd-list-item__place {
+    display: block;
+    margin-bottom: var(--space-2);
+    font: var(--type-kicker);
+    color: var(--text-hot);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-list-item__headline {
+    margin: 0 0 var(--space-2);
+    font: var(--weight-semibold) var(--size-sm) / 1.3 var(--font-display);
+    color: var(--text-strong);
+    text-wrap: pretty;
+  }
+
+  .pd-list-item__time {
+    font: var(--type-meta);
+    color: var(--text-faint);
+  }
+
+  .pd-list-item:hover {
+    background: var(--surface-subtle);
+  }
+
+  .pd-list-item:hover .pd-list-item__headline {
+    color: var(--pd-blue-700);
+  }
+
+  .pd-list-item:focus-visible {
+    outline: var(--border-thick) solid var(--pd-blue-600);
+    outline-offset: calc(var(--space-1) * -1);
+  }
+</style>

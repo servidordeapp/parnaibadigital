@@ -10,7 +10,7 @@
 ## Summary
 
 Transformar o protótipo aprovado (26 telas em `ParnaibaDigital.dc.html`) e seu Design System
-(31 componentes, 7 arquivos de token) numa base de frontend real, dentro de um monorepo com
+(34 componentes, 7 arquivos de token) numa base de frontend real, dentro de um monorepo com
 duas aplicações e cinco pacotes compartilhados, com o backend Laravel existente reorganizado
 em módulos de domínio — **sem implementar nenhuma regra de negócio**.
 
@@ -69,7 +69,7 @@ todo conteúdo com município primário obrigatório · nenhuma rede de anúncio
 motor de busca, fila ou coletor integrado.
 
 **Scale/Scope**: 25 superfícies de produto (14 públicas + 11 administrativas) + 1 superfície
-de desenvolvimento · 36 componentes (31 do DS + 5 adições justificadas) · 5 municípios,
+de desenvolvimento · 39 componentes (34 do DS + 5 adições justificadas) · 5 municípios,
 9 bairros, 12 editorias · dados demonstrativos: 12 artigos, 6 documentos oficiais, 6 eventos,
 6 empresas, 8 etapas de pipeline, 4 grupos de utilidade pública · ~5 artigos/dia em produção.
 
@@ -117,7 +117,7 @@ specs/001-fundacao-prototipo-monorepo/
 ├── contracts/
 │   ├── openapi-v1.yaml            # Contrato de leitura da API (fonte de verdade dos tipos)
 │   ├── routes.md                  # 25 superfícies + declaração de SEO exigida pelo Princípio II
-│   └── component-inventory.md     # 31 componentes do DS + 5 adições justificadas
+│   └── component-inventory.md     # 34 componentes do DS + 5 adições justificadas
 ├── checklists/
 │   └── requirements.md            # Já existente
 └── tasks.md                       # Fase 2 — gerado por /speckit-tasks, NÃO por este comando
@@ -157,7 +157,7 @@ packages/
 │   │   ├── index.css                          # @import dos tokens + @theme inline
 │   │   └── theme/{dark,fonts-local,icons}.css # Overlays — D-07, D-08, D-09
 │   └── MANIFEST.sha256                        # Verificado em CI — SC-017
-├── ui/                            # 36 componentes .astro — definição única (SC-012)
+├── ui/                            # 39 componentes .astro — definição única (SC-012)
 │   └── src/{core,brand,news,navigation,widgets,tourism,ads,overlay,feedback,data}/
 ├── types/
 │   └── src/generated/api-v1.ts    # Gerado do OpenAPI, versionado (D-10)

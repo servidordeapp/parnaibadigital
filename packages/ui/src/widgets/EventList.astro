@@ -1,0 +1,140 @@
+---
+import type { Event } from "@parnaibadigital/types";
+
+import WidgetCard from "./WidgetCard.astro";
+
+/**
+ * Agenda compacta da barra lateral. Lê os mesmos `Event` da tela `/eventos` — origem única,
+ * duas apresentações.
+ *
+ * A data sai em `<time datetime>` com o valor ISO íntegro, e não só "15 ago": a forma
+ * abreviada é para o olho humano, e o atributo é o que máquina e tecnologia assistiva leem.
+ * Guardar apenas a abreviação perderia ano e fuso, que é como agenda regional acaba
+ * mostrando evento do ano passado.
+ */
+interface Props {
+  items: readonly Event[];
+  title?: string | undefined;
+  href?: string | undefined;
+  level?: "h2" | "h3" | undefined;
+  class?: string | undefined;
+}
+
+const { items, title = "Eventos", href = "/eventos", level = "h2", class: className } = Astro.props;
+
+const dayFormat = new Intl.DateTimeFormat("pt-BR", { day: "2-digit" });
+const monthFormat = new Intl.DateTimeFormat("pt-BR", { month: "short" });
+const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
+---
+
+<WidgetCard
+  title={title}
+  icon="calendar-days"
+  level={level}
+  footerLabel="Agenda completa"
+  footerHref={href}
+  class={className}
+>
+  {
+    items.length === 0 ? (
+      <p class="pd-eventlist__empty">Nenhum evento confirmado para os próximos dias.</p>
+    ) : (
+      <ul class="pd-eventlist">
+        {items.map((event) => (
+          <li class="pd-eventlist__item">
+            <time class="pd-eventlist__date" datetime={event.startsAt}>
+              <span class="pd-eventlist__day">{dayFormat.format(new Date(event.startsAt))}</span>
+              <span class="pd-eventlist__month">
+                {monthFormat.format(new Date(event.startsAt)).replace(".", "")}
+              </span>
+            </time>
+
+            <span class="pd-eventlist__body">
+              <span class="pd-eventlist__title">{event.title}</span>
+              <span class="pd-eventlist__meta">
+                {timeFormat.format(new Date(event.startsAt))} · {event.venue}
+              </span>
+              <span class="pd-eventlist__price">
+                {event.price.free
+                  ? "Entrada gratuita"
+                  : new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(event.price.amount ?? 0)}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</WidgetCard>
+
+<style>
+  .pd-eventlist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-eventlist__item {
+    display: grid;
+    grid-template-columns: var(--space-11) 1fr;
+    gap: var(--space-4);
+    align-items: center;
+  }
+
+  .pd-eventlist__date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-3) 0;
+    border: var(--border-hair) solid var(--border-hot);
+    border-radius: var(--radius-sm);
+    background: var(--surface-hot-soft);
+    /* `--text-hot`, e não um degrau da rampa direto: o alias é corrigido em
+       `design-system/src/theme/contrast.css` no tema claro e re-apontado em `dark.css` no
+       escuro. Fixar `--pd-sun-900` aqui daria 8,15:1 no claro e 1,57:1 no escuro. */
+    color: var(--text-hot);
+  }
+
+  .pd-eventlist__day {
+    font: var(--weight-bold) var(--size-xl) / 1 var(--font-display);
+  }
+
+  .pd-eventlist__month {
+    font: var(--type-kicker);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-eventlist__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .pd-eventlist__title {
+    font: var(--type-headline-sm);
+    color: var(--text-strong);
+  }
+
+  .pd-eventlist__meta {
+    font: var(--type-meta);
+    color: var(--text-muted);
+  }
+
+  .pd-eventlist__price {
+    font: var(--type-meta);
+    color: var(--text-brand);
+  }
+
+  .pd-eventlist__empty {
+    margin: 0;
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+</style>

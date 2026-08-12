@@ -1,0 +1,184 @@
+---
+import { Badge, Button, Icon, Input, Tag } from "@parnaibadigital/ui";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { groups, inventory } from "../../lib/inventory";
+
+import "../../styles/portal.css";
+
+/**
+ * T111 / FR-005 — o inventário vivo.
+ *
+ * Superfície de **desenvolvimento**, não de produto: `noindex,nofollow`, fora de todo
+ * sitemap e fora da medição de orçamento (Assumption 4, `contracts/routes.md`). Usa
+ * `BaseLayout` direto, sem cabeçalho nem rodapé do portal — o chrome apareceria em cada
+ * card e atrapalharia justamente a leitura que a galeria existe para permitir.
+ *
+ * A busca por nome e por função é `<input>` com filtro em script. Aqui, e só aqui,
+ * depender de JavaScript é aceitável: quem consome esta tela é quem desenvolve o produto, e
+ * a lista completa continua no HTML — o filtro esconde, não carrega.
+ */
+const entries = inventory();
+const allGroups = groups();
+
+const missing = entries.filter((entry) => !entry.implemented);
+const additions = entries.filter((entry) => entry.status === "adicao-justificada");
+---
+
+<BaseLayout
+  title="Inventário de componentes"
+  description="Os componentes publicados pelo Design System e as adições justificadas desta fase."
+  noindex
+>
+  <div class="pd-gallery">
+    <header class="pd-listing__header">
+      <span class="pd-listing__kicker">Superfície de desenvolvimento</span>
+      <h1 class="pd-listing__title">Inventário de componentes</h1>
+      <p class="pd-listing__lede">
+        {entries.length} componentes: {entries.length - additions.length} publicados pelo Design System
+        e {additions.length} adições justificadas (FR-007). A lista sai do
+        <code>_ds_manifest.json</code> vendorizado — não é mantida à mão.
+      </p>
+    </header>
+
+    <div class="pd-gallery__search">
+      <Input
+        id="gallery-search"
+        label="Buscar por nome ou função"
+        icon="search"
+        placeholder="Button, bairro, anúncio…"
+      />
+    </div>
+
+    {
+      missing.length > 0 && (
+        <p class="pd-gallery__missing" role="status">
+          <Icon name="life-buoy" size="sm" />
+          {missing.length} componente(s) do Design System ainda sem implementação em
+          <code>packages/ui</code>: {missing.map((entry) => entry.name).join(", ")}.
+        </p>
+      )
+    }
+
+    <nav class="pd-filters" aria-label="Grupos de componentes">
+      {
+        allGroups.map((group) => (
+          <a class="pd-filters__chip" href={`/componentes/${group}`}>
+            {group}
+          </a>
+        ))
+      }
+    </nav>
+
+    <ul class="pd-gallery__grid" data-pd-gallery>
+      {
+        entries.map((entry) => (
+          <li
+            class="pd-item pd-gallery__card"
+            data-pd-gallery-item
+            data-name={entry.name.toLowerCase()}
+            data-group={entry.group}
+            data-justification={(entry.justification ?? "").toLowerCase()}
+          >
+            <div class="pd-item__head">
+              <Tag tone="neutral" size="sm" pin={false}>
+                {entry.group}
+              </Tag>
+              {entry.status === "adicao-justificada" && <Badge tone="hot">Adição</Badge>}
+              {!entry.implemented && <Badge tone="urgent">Pendente</Badge>}
+            </div>
+
+            <h2 class="pd-item__title">{entry.name}</h2>
+            <p class="pd-item__meta">{entry.path}</p>
+
+            {entry.justification !== undefined && (
+              <p class="pd-item__text">{entry.justification}</p>
+            )}
+
+            <div class="pd-item__actions">
+              <Button size="sm" variant="secondary" href={`/componentes/${entry.group}`}>
+                Ver estados
+              </Button>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="pd-gallery__empty" data-pd-gallery-empty hidden role="status">
+      Nenhum componente corresponde à busca.
+    </p>
+  </div>
+</BaseLayout>
+
+<script>
+  const input = document.querySelector<HTMLInputElement>("#gallery-search");
+  const items = [...document.querySelectorAll<HTMLElement>("[data-pd-gallery-item]")];
+  const empty = document.querySelector<HTMLElement>("[data-pd-gallery-empty]");
+
+  input?.addEventListener("input", () => {
+    const term = input.value.trim().toLowerCase();
+    let visible = 0;
+
+    for (const item of items) {
+      // Busca por nome **e por função**: quem procura "anúncio" precisa achar `AdSlot`,
+      // e quem não sabe o nome do componente é exatamente quem mais precisa da galeria.
+      const haystack = [
+        item.dataset.name ?? "",
+        item.dataset.group ?? "",
+        item.dataset.justification ?? "",
+      ].join(" ");
+
+      const match = term === "" || haystack.includes(term);
+      item.hidden = !match;
+      if (match) visible += 1;
+    }
+
+    if (empty !== null) empty.hidden = visible > 0;
+  });
+</script>
+
+<style>
+  .pd-gallery {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: var(--space-8) var(--container-gutter) var(--space-12);
+  }
+
+  .pd-gallery__search {
+    /* largura do card do inventário; superfície de desenvolvimento (Assumption 4).
+       check-tokens-disable-next-line */
+    max-width: 420px;
+    margin-bottom: var(--space-6);
+  }
+
+  .pd-gallery__missing {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    margin-bottom: var(--space-6);
+    padding: var(--space-4) var(--space-5);
+    border: var(--border-hair) solid var(--border-hot);
+    border-radius: var(--radius-md);
+    background: var(--surface-context);
+    font: var(--type-body-sm);
+    color: var(--text-strong);
+  }
+
+  .pd-gallery__grid {
+    display: grid;
+    /* piso da trilha do grid do inventário; ver acima.
+       check-tokens-disable-next-line */
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-gallery__empty {
+    margin-top: var(--space-7);
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+</style>

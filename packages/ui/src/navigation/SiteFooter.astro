@@ -1,0 +1,147 @@
+---
+import type { FooterColumn } from "./types";
+
+import Icon from "../core/Icon.astro";
+import Wordmark from "../brand/Wordmark.astro";
+
+/**
+ * Rodapé com a **declaração de transparência** da Curadoria Inteligente.
+ *
+ * O DS marca esse aviso como obrigatório por dois motivos independentes: política de rede
+ * de anúncio e confiança do leitor. Removê-lo por espaço não é ajuste de layout — é retirar
+ * do produto a frase que sustenta o Princípio V na única superfície presente em todas as
+ * telas.
+ *
+ * As colunas chegam prontas da aplicação. O rodapé lista editorias, e editoria é dado
+ * (`packages/api-client`), não constante de componente — uma lista escrita aqui divergiria
+ * do conteúdo real no primeiro acréscimo (FR-030).
+ */
+interface Props {
+  columns: readonly FooterColumn[];
+  year?: number | undefined;
+  class?: string | undefined;
+}
+
+const { columns, year = new Date().getFullYear(), class: className } = Astro.props;
+---
+
+<footer class:list={["pd-footer", className]}>
+  <div class="pd-footer__main">
+    <div class="pd-footer__brand">
+      <Wordmark onDark showTagline />
+      <p class="pd-footer__pitch">
+        Jornalismo hiperlocal para Parnaíba e o Litoral do Piauí. Curadoria automatizada com revisão
+        humana, 24 horas por dia.
+      </p>
+    </div>
+
+    {
+      columns.map((column) => (
+        <nav class="pd-footer__column" aria-label={column.title}>
+          <h2 class="pd-footer__column-title">{column.title}</h2>
+          <ul class="pd-footer__links">
+            {column.links.map((link) => (
+              <li>
+                <a class="pd-footer__link" href={link.href}>
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ))
+    }
+  </div>
+
+  <div class="pd-footer__legal">
+    <div class="pd-footer__legal-inner">
+      <span>© {year} ParnaíbaDigital · Parnaíba, Piauí</span>
+
+      <span class="pd-footer__transparency">
+        <Icon name="sparkles" size="xs" class="pd-footer__transparency-icon" />
+        Conteúdo curado por automação com supervisão editorial humana
+      </span>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .pd-footer {
+    margin-top: var(--space-11);
+    background: var(--surface-footer);
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-footer__main {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: var(--space-10) var(--container-gutter) var(--space-7);
+  }
+
+  .pd-footer__pitch {
+    max-width: 34ch;
+    margin: var(--space-5) 0 0;
+    font: var(--type-body-sm);
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-footer__column-title {
+    margin: 0 0 var(--space-5);
+    font: var(--type-kicker);
+    color: var(--pd-sun-300);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-footer__links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-footer__link {
+    font: var(--type-body-sm);
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-footer__link:hover {
+    color: var(--text-inverse);
+  }
+
+  .pd-footer__legal {
+    border-top: var(--border-hair) solid rgb(255 255 255 / 10%); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- hairline sobre o rodapé azul, declarada no readme do DS */
+  }
+
+  .pd-footer__legal-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: var(--space-5) var(--container-gutter);
+    font: var(--type-meta);
+  }
+
+  .pd-footer__transparency {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .pd-footer__transparency-icon {
+    color: var(--pd-sun-400);
+  }
+
+  @media (width >= 900px) {
+    .pd-footer__main {
+      grid-template-columns: 1.2fr repeat(3, 1fr);
+    }
+  }
+</style>

@@ -1,0 +1,116 @@
+---
+import { AdminSidebar, Toast } from "@parnaibadigital/ui";
+import type { AdminNavItem } from "@parnaibadigital/ui";
+
+import AdminLayout from "./AdminLayout.astro";
+
+import "../styles/panel.css";
+
+/**
+ * Casca das 11 superfícies do painel: navegação lateral, cabeçalho da tela e a região de
+ * aviso.
+ *
+ * `AdminLayout` continua responsável só pelo documento (idioma, tema, `noindex`,
+ * acessibilidade). Esta camada monta o **painel** — a mesma separação que o portal faz
+ * entre `BaseLayout` e `PortalLayout`.
+ *
+ * A navegação é montada aqui, uma vez. Repeti-la em 11 telas garantiria que uma delas
+ * ficasse com um item a menos, e essa divergência não aparece em teste de conteúdo.
+ */
+interface Props {
+  title: string;
+  /** Rota da tela corrente, para o realce do item ativo. */
+  active: string;
+  /** Linha de apoio abaixo do título. */
+  lede?: string | undefined;
+}
+
+const { title, active, lede } = Astro.props;
+
+/**
+ * As 11 rotas de `contracts/routes.md`. Os ícones vêm do vocabulário fechado do DS — o
+ * protótipo usa glifos que ele não publica (`layout-dashboard`, `newspaper`, `workflow`,
+ * `megaphone`, `chart-line`, `plug`, `users`, `settings`), e substituí-los por SVG desenhado
+ * à mão é proibido pelo `readme.md`. A substituição está declarada, não escondida.
+ */
+const NAV: AdminNavItem[] = [
+  { label: "Dashboard", href: "/", icon: "map-pinned" },
+  { label: "Notícias", href: "/noticias", icon: "search", badge: "12" },
+  { label: "Pipeline de IA", href: "/pipeline", icon: "sparkles", badge: "4", hot: true },
+  { label: "Diário Oficial", href: "/diario-oficial", icon: "link-2", badge: "6" },
+  { label: "Publicidade", href: "/publicidade", icon: "external-link" },
+  { label: "Analytics", href: "/analytics", icon: "refresh-cw" },
+  { label: "SEO", href: "/seo", icon: "badge-check", badge: "3", hot: true },
+  { label: "Integrações", href: "/integracoes", icon: "life-buoy" },
+  { label: "Usuários", href: "/usuarios", icon: "phone" },
+  { label: "Configurações", href: "/configuracoes", icon: "menu" },
+];
+
+const items = NAV.map((item) => ({ ...item, active: item.href === active }));
+---
+
+<AdminLayout title={title}>
+  <AdminSidebar slot="sidebar" items={items} class="pd-panel__nav" />
+
+  <div class="pd-panel">
+    <header class="pd-panel__header">
+      <h1 class="pd-panel__title">{title}</h1>
+      {lede !== undefined && <p class="pd-panel__lede">{lede}</p>}
+    </header>
+
+    <slot />
+  </div>
+
+  <Toast />
+</AdminLayout>
+
+<style is:global>
+  /* O painel é uma coluna lateral fixa mais o conteúdo — acima de 900px. Abaixo disso a
+     navegação vira gaveta e tudo empilha, como no protótipo. */
+  body {
+    background: var(--surface-page);
+    color: var(--text-body);
+  }
+
+  @media (width >= 900px) {
+    body {
+      display: grid;
+      /* largura da navegação lateral do painel. O DS tokeniza --sidebar-width (336px) para a
+         coluna de serviços do portal, não para o chrome do painel; pedido aberto ao design.
+         check-tokens-disable-next-line */
+      grid-template-columns: 248px minmax(0, 1fr);
+      align-items: start;
+      min-height: 100vh;
+    }
+
+    .pd-panel__nav {
+      position: sticky;
+      top: 0;
+      min-height: 100vh;
+    }
+  }
+</style>
+
+<style>
+  .pd-panel {
+    max-width: var(--container-max);
+    padding: var(--space-7) var(--container-gutter) var(--space-11);
+  }
+
+  .pd-panel__header {
+    margin-bottom: var(--space-7);
+  }
+
+  .pd-panel__title {
+    margin: 0;
+    font: var(--type-headline-lg);
+    color: var(--text-strong);
+  }
+
+  .pd-panel__lede {
+    max-width: 68ch;
+    margin: var(--space-3) 0 0;
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+</style>

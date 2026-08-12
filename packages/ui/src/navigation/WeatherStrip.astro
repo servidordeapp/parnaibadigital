@@ -1,0 +1,71 @@
+---
+import type { IconName } from "@parnaibadigital/design-system/icons";
+
+import Icon from "../core/Icon.astro";
+
+/**
+ * Faixa de clima da barra lateral.
+ *
+ * Nenhuma chamada de rede acontece aqui (FR-038): o componente recebe valores já
+ * resolvidos. Isso não é limitação temporária — é a fronteira certa. Um componente que
+ * busca o próprio dado vira acoplamento a um fornecedor de clima dentro de `packages/ui`,
+ * e trocá-lo passaria a exigir mexer no Design System.
+ *
+ * O ícone vem do vocabulário fechado do DS (`sun`, `cloud-rain`); condição fora dessa lista
+ * não compila, que é o comportamento desejado (D-09).
+ */
+interface Props {
+  /** Temperatura já formatada pela tela, com unidade ("32°C"). */
+  temperature: string;
+  condition: string;
+  icon: IconName;
+  humidity?: string | undefined;
+  class?: string | undefined;
+}
+
+const { temperature, condition, icon, humidity, class: className } = Astro.props;
+---
+
+<aside class:list={["pd-weather", className]} aria-label="Tempo agora">
+  <Icon name={icon} size="lg" class="pd-weather__icon" />
+
+  <span class="pd-weather__temp">{temperature}</span>
+
+  <span class="pd-weather__condition">
+    {condition}
+    {humidity !== undefined && <span class="pd-weather__humidity">umidade {humidity}</span>}
+  </span>
+</aside>
+
+<style>
+  .pd-weather {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    padding: var(--space-4) var(--space-5);
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-1);
+  }
+
+  .pd-weather__icon {
+    color: var(--pd-sun-500);
+  }
+
+  .pd-weather__temp {
+    font: var(--type-data);
+    color: var(--text-strong);
+  }
+
+  .pd-weather__condition {
+    display: flex;
+    flex-direction: column;
+    font: var(--type-meta);
+    color: var(--text-muted);
+  }
+
+  .pd-weather__humidity {
+    color: var(--text-faint);
+  }
+</style>

@@ -1,0 +1,104 @@
+---
+import type { Destination } from "./types";
+
+import Icon from "../core/Icon.astro";
+import PhotoFrame from "../core/PhotoFrame.astro";
+
+/**
+ * Destino de lazer em card-foto com sobreposição. Curto por natureza: nome, categoria e a
+ * informação prática de deslocamento — que no Delta é a decisão real de quem escolhe passeio.
+ *
+ * O texto fica sobre a foto com o véu do DS (`--scrim-photo`), nunca direto sobre a imagem:
+ * sem o véu o contraste depende da foto que subiu naquele dia, e um card testado em uma
+ * imagem clara reprova WCAG na seguinte.
+ */
+interface Props {
+  destination: Destination;
+  level?: "h2" | "h3" | undefined;
+  class?: string | undefined;
+}
+
+const { destination, level = "h3", class: className } = Astro.props;
+const Heading = level;
+---
+
+<article class:list={["pd-destination", className]}>
+  <a class="pd-destination__link" href={destination.href}>
+    <PhotoFrame ratio="4/3" radius="md" class="pd-destination__photo" />
+    <span class="pd-destination__scrim"></span>
+
+    <span class="pd-destination__body">
+      <span class="pd-destination__kind">{destination.kind}</span>
+      <Heading class="pd-destination__name">{destination.name}</Heading>
+      <span class="pd-destination__place">
+        <Icon name="map-pin" size="xs" />
+        {destination.place}
+      </span>
+      <span class="pd-destination__travel">{destination.travelLabel}</span>
+    </span>
+  </a>
+</article>
+
+<style>
+  .pd-destination {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-1);
+    transition: var(--transition-interactive);
+  }
+
+  .pd-destination:hover {
+    box-shadow: var(--shadow-2);
+    transform: translateY(-1px);
+  }
+
+  .pd-destination__link {
+    position: relative;
+    display: block;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .pd-destination__scrim {
+    position: absolute;
+    inset: 0;
+    background: var(--scrim-photo);
+  }
+
+  .pd-destination__body {
+    position: absolute;
+    inset: auto 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-5);
+  }
+
+  .pd-destination__kind {
+    font: var(--type-kicker);
+    color: var(--pd-sun-300);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-destination__name {
+    margin: 0;
+    font: var(--type-headline-sm);
+    color: var(--text-inverse);
+  }
+
+  .pd-destination__place,
+  .pd-destination__travel {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    font: var(--type-meta);
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-destination__link:focus-visible {
+    outline: var(--border-thick) solid var(--pd-sun-500);
+    outline-offset: var(--space-1);
+  }
+</style>

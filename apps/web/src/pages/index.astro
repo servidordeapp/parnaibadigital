@@ -1,0 +1,514 @@
+---
+import { MUNICIPALITIES } from "@parnaibadigital/api-client";
+import {
+  AdSlot,
+  EventList,
+  HeroStory,
+  JobList,
+  NeighborhoodTagBar,
+  NewsCard,
+  NewsListItem,
+  PharmacyList,
+  SectionHeading,
+  WeatherStrip,
+} from "@parnaibadigital/ui";
+
+import PortalLayout from "../layouts/PortalLayout.astro";
+import {
+  categoryHref,
+  client,
+  defaultMunicipality,
+  neighborhoodHref,
+  newsHref,
+  placeLabelForNews,
+  SITE_NAME,
+  SITE_TAGLINE,
+} from "../lib/site";
+import { organization, website } from "../lib/seo/structured-data";
+
+/**
+ * T065 — a home do protótipo.
+ *
+ * Ordem das faixas, de cima para baixo: anúncio de topo, manchete com a coluna "mais lidas",
+ * bloco geolocalizado de bairros, grid de últimas, blocos por editoria, eventos do fim de
+ * semana e "continue lendo" — com a barra de serviços à direita.
+ *
+ * **A sidebar migra para depois do 6º card abaixo de 900px.** Isso é feito por ordem no DOM
+ * mais `order` no grid, e não por duplicação de marcação: dois blocos, um "para desktop" e
+ * outro "para mobile", significariam conteúdo repetido para o rastreador e para o leitor de
+ * tela — dois defeitos por uma decisão de layout.
+ */
+const municipality = defaultMunicipality();
+
+const latest = await client.news.list({ perPage: 12 });
+const categories = await client.categories.list();
+const events = await client.events.list();
+const jobs = await client.utilities.list("empregos");
+
+const [hero, ...rest] = latest.data;
+
+/* "Mais lidas" é ordenação por leitura, não por data — e é por isso que a lista existe
+   separada do grid, que é cronológico. */
+const mostRead = [...latest.data]
+  .sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0))
+  .slice(0, 5);
+
+const mostCommented = [...latest.data]
+  .sort((a, b) => (b.commentCount ?? 0) - (a.commentCount ?? 0))
+  .slice(0, 5);
+
+const gridItems = rest.slice(0, 4);
+const continueReading = rest.slice(4, 8);
+
+/** Bairros com matéria recente — o bloco geolocalizado só lista o que tem conteúdo. */
+const neighborhoodLinks = (
+  await Promise.all(
+    MUNICIPALITIES.map(async (item) => {
+      const list = await client.geo.listNeighborhoods(item.ibgeCode);
+      return list.map((neighborhood) => ({
+        name: neighborhood.name,
+        href: neighborhoodHref(item, neighborhood),
+        count: latest.data.filter((article) => article.neighborhoodIds.includes(neighborhood.id))
+          .length,
+      }));
+    }),
+  )
+).flat();
+
+const activeNeighborhoods = neighborhoodLinks.filter((link) => link.count > 0);
+
+/** Editorias com pelo menos duas matérias — abaixo disso o bloco fica ralo demais. */
+const byCategory = (
+  await Promise.all(
+    categories.map(async (category) => {
+      const page = await client.news.list({ categorySlug: category.slug, perPage: 3 });
+      const items = await Promise.all(
+        page.data.map(async (article) => ({
+          article,
+          place: await placeLabelForNews(article),
+        })),
+      );
+      return { category, items };
+    }),
+  )
+)
+  .filter((block) => block.items.length >= 1)
+  .slice(0, 3);
+
+const heroPlace = hero === undefined ? "" : await placeLabelForNews(hero);
+const heroCategory =
+  hero === undefined ? undefined : categories.find((item) => item.slug === hero.categorySlug);
+
+const gridWithPlace = await Promise.all(
+  gridItems.map(async (article) => ({
+    article,
+    place: await placeLabelForNews(article),
+    category: categories.find((item) => item.slug === article.categorySlug),
+  })),
+);
+
+const continueWithPlace = await Promise.all(
+  continueReading.map(async (article) => ({
+    article,
+    place: await placeLabelForNews(article),
+    category: categories.find((item) => item.slug === article.categorySlug),
+  })),
+);
+
+const mostReadWithPlace = await Promise.all(
+  mostRead.map(async (article, index) => ({
+    article,
+    index: index + 1,
+    place: await placeLabelForNews(article),
+  })),
+);
+
+const mostCommentedWithPlace = await Promise.all(
+  mostCommented.map(async (article) => ({
+    article,
+    place: await placeLabelForNews(article),
+  })),
+);
+
+const meta = {
+  title: SITE_TAGLINE,
+  description:
+    "Notícias de Parnaíba, Luís Correia, Ilha Grande, Buriti dos Lopes e Cajueiro da Praia, bairro a bairro. Diário Oficial resumido, utilidade pública, eventos e guia de empresas.",
+  path: "/",
+};
+---
+
+<PortalLayout meta={meta} schema={[website(), organization()]} isHome>
+  {
+    /* O `h1` da home é o assunto da PÁGINA, não a manchete do dia — por isso o `HeroStory`
+     permanece `h2` (ver o comentário do componente). Ele fica visualmente escondido porque o
+     protótipo não desenha um título de página aqui: o maior texto da tela é a manchete, e
+     acrescentar um cabeçalho visível seria redesenhar (FR-002). Escondido não é ausente —
+     leitor de tela e rastreador leem, o que é justamente o que WCAG 1.3.1 pede. */
+  }
+  <h1 class="pd-home__title">{SITE_NAME} — {SITE_TAGLINE}</h1>
+
+  <AdSlot format="leaderboard" position="Topo da home" class="pd-home__ad-top" />
+
+  {
+    hero !== undefined && (
+      <section class="pd-home__lead" aria-label="Manchete">
+        <HeroStory
+          headline={hero.headline}
+          href={newsHref(hero.slug)}
+          place={heroPlace}
+          standfirst={hero.standfirst}
+          kicker={heroCategory?.name ?? "Manchete"}
+          curation={hero.curation}
+          image={hero.image}
+        />
+
+        <div class="pd-home__lead-side">
+          <div>
+            <SectionHeading accent="blue" level="h2">
+              Mais lidas agora
+            </SectionHeading>
+            {mostReadWithPlace.map(({ article, index, place }) => (
+              <NewsListItem
+                headline={article.headline}
+                href={newsHref(article.slug)}
+                place={place}
+                publishedAt={article.publishedAt}
+                index={index}
+                showPhoto={false}
+                image={article.image}
+              />
+            ))}
+          </div>
+
+          <AdSlot format="rectangle" position="Sidebar · topo" />
+        </div>
+      </section>
+    )
+  }
+
+  <NeighborhoodTagBar
+    neighborhoods={activeNeighborhoods}
+    title={`Seu bairro agora · ${municipality.name} e litoral`}
+    class="pd-home__geo"
+  />
+
+  <div class="pd-home__grid">
+    <div class="pd-home__main">
+      <section aria-label="Últimas notícias">
+        <SectionHeading linkLabel="Ver todas as editorias" href="/editoria/urgente">
+          Últimas notícias
+        </SectionHeading>
+
+        <div class="pd-home__cards">
+          {
+            gridWithPlace.map(({ article, place, category }) => (
+              <NewsCard
+                headline={article.headline}
+                href={newsHref(article.slug)}
+                place={place}
+                standfirst={article.standfirst}
+                kicker={category?.name}
+                kickerTone={article.tone}
+                curation={article.curation}
+                image={article.image}
+              />
+            ))
+          }
+        </div>
+      </section>
+
+      <AdSlot format="inread" position="In-feed · após o 4º card" class="pd-home__ad-feed" />
+
+      <div class="pd-home__columns">
+        <section aria-label="Mais comentadas">
+          <SectionHeading accent="blue" level="h2">Mais comentadas</SectionHeading>
+          <ul class="pd-home__plain-list">
+            {
+              mostCommentedWithPlace.map(({ article, place }) => (
+                <li>
+                  <a class="pd-home__plain-link" href={newsHref(article.slug)}>
+                    <span>
+                      <span class="pd-home__plain-place">{place}</span>
+                      <span class="pd-home__plain-headline">{article.headline}</span>
+                    </span>
+                    <span class="pd-home__plain-count">{String(article.commentCount ?? 0)}</span>
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </section>
+
+        {
+          byCategory.map((block) => (
+            <section aria-label={`Notícias de ${block.category.name}`}>
+              <SectionHeading
+                accent="blue"
+                level="h2"
+                linkLabel="ver tudo"
+                href={categoryHref(block.category.slug)}
+              >
+                {block.category.name}
+              </SectionHeading>
+              <ul class="pd-home__plain-list">
+                {block.items.map(({ article, place }) => (
+                  <li>
+                    <a class="pd-home__plain-link" href={newsHref(article.slug)}>
+                      <span>
+                        <span class="pd-home__plain-headline">{article.headline}</span>
+                        <span class="pd-home__plain-place">{place}</span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
+        }
+      </div>
+
+      <section aria-label="Eventos do fim de semana">
+        <SectionHeading linkLabel="Agenda completa" href="/eventos">
+          Eventos do fim de semana
+        </SectionHeading>
+        <ul class="pd-home__events">
+          {
+            events.slice(0, 3).map((event) => (
+              <li>
+                <a class="pd-home__event" href="/eventos">
+                  <time class="pd-home__event-date" datetime={event.startsAt}>
+                    {new Intl.DateTimeFormat("pt-BR", { day: "2-digit" }).format(
+                      new Date(event.startsAt),
+                    )}
+                    <span>
+                      {new Intl.DateTimeFormat("pt-BR", { month: "short" })
+                        .format(new Date(event.startsAt))
+                        .replace(".", "")}
+                    </span>
+                  </time>
+                  <span>
+                    <span class="pd-home__event-title">{event.title}</span>
+                    <span class="pd-home__event-meta">{event.venue}</span>
+                  </span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section aria-label="Continue lendo">
+        <SectionHeading linkLabel="Ver mais" href="/editoria/urgente">
+          Continue lendo
+        </SectionHeading>
+        <div class="pd-home__rows">
+          {
+            continueWithPlace.map(({ article, place, category }) => (
+              <NewsCard
+                layout="row"
+                headline={article.headline}
+                href={newsHref(article.slug)}
+                place={place}
+                standfirst={article.standfirst}
+                kicker={category?.name}
+                kickerTone={article.tone}
+                curation={article.curation}
+                image={article.image}
+              />
+            ))
+          }
+        </div>
+      </section>
+    </div>
+
+    <aside class="pd-home__side" aria-label="Serviços do litoral">
+      <WeatherStrip temperature="32°C" condition="Sol com nuvens" icon="sun" humidity="64%" />
+
+      <PharmacyList level="h2" />
+
+      <JobList items={jobs.slice(0, 4)} totalLabel={`${String(jobs.length)} vagas`} level="h2" />
+
+      <EventList items={events.slice(0, 3)} level="h2" />
+
+      <AdSlot format="halfpage" position="Sidebar · sticky" sticky />
+    </aside>
+  </div>
+</PortalLayout>
+
+<style>
+  /* Visualmente escondido, ainda no fluxo de leitura assistiva — mesmo recorte usado em
+     `Skeleton.astro`. `display: none` o tiraria também do leitor de tela, que é o oposto
+     do que se quer aqui. */
+  .pd-home__title {
+    position: absolute;
+    width: var(--border-hair);
+    height: var(--border-hair);
+    padding: 0;
+    margin: calc(var(--border-hair) * -1);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pd-home__ad-top,
+  .pd-home__ad-feed,
+  .pd-home__geo {
+    margin-bottom: var(--space-8);
+  }
+
+  .pd-home__lead {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-7);
+    margin-bottom: var(--space-8);
+  }
+
+  .pd-home__lead-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .pd-home__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--grid-gap);
+    align-items: start;
+  }
+
+  .pd-home__main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    min-width: 0;
+  }
+
+  .pd-home__cards,
+  .pd-home__rows {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--grid-gap-tight);
+  }
+
+  .pd-home__columns {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  .pd-home__plain-list,
+  .pd-home__events {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-home__plain-link {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-2);
+    border-bottom: var(--border-hair) solid var(--border-subtle);
+    color: inherit;
+  }
+
+  .pd-home__plain-place {
+    display: block;
+    font: var(--type-kicker);
+    color: var(--text-hot);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-home__plain-headline {
+    display: block;
+    margin-top: var(--space-1);
+    font: var(--weight-semibold) var(--size-sm) / 1.35 var(--font-display);
+    color: var(--text-strong);
+  }
+
+  .pd-home__plain-count {
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    background: var(--surface-brand-soft);
+    font: var(--type-data);
+    color: var(--text-brand);
+  }
+
+  .pd-home__events {
+    gap: var(--grid-gap-tight);
+  }
+
+  .pd-home__event {
+    display: grid;
+    grid-template-columns: var(--space-11) 1fr;
+    gap: var(--space-5);
+    padding: var(--space-5);
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-1);
+    color: inherit;
+  }
+
+  .pd-home__event-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: var(--border-hair) solid var(--border-hot);
+    border-radius: var(--radius-sm);
+    background: var(--surface-hot-soft);
+    font: var(--weight-bold) var(--size-xl) / 1 var(--font-display);
+    color: var(--text-hot);
+  }
+
+  .pd-home__event-date span {
+    font: var(--type-kicker);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-home__event-title {
+    display: block;
+    font: var(--type-headline-sm);
+    color: var(--text-strong);
+  }
+
+  .pd-home__event-meta {
+    display: block;
+    margin-top: var(--space-2);
+    font: var(--type-meta);
+    color: var(--text-muted);
+  }
+
+  .pd-home__side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  /* ——— Virada de coluna única (FR-010) ———
+     Abaixo de 900px tudo empilha e a barra de serviços cai depois do conteúdo principal —
+     que é o comportamento do protótipo. Uma única marcação serve as duas larguras. */
+  @media (width >= 640px) {
+    .pd-home__cards {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (width >= 900px) {
+    .pd-home__lead,
+    .pd-home__grid {
+      grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
+    }
+
+    .pd-home__columns {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

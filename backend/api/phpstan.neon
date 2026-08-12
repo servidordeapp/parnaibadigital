@@ -1,0 +1,24 @@
+# T118 — PHPStan/Larastan no nível 8.
+#
+# Nível 8 é o mais alto antes do 9 (que exige tipagem de `mixed` em toda parte). A escolha não
+# é ambição: num backend que ainda não tem regra de negócio, começar estrito custa pouco, e
+# afrouxar depois é bem mais difícil que apertar agora.
+
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 8
+
+    paths:
+        - app
+        - routes
+
+    # O domínio não conhece Laravel — e o analisador deve cobrar isso mesmo que o Deptrac já
+    # cubra a fronteira entre módulos.
+    treatPhpDocTypesAsCertain: false
+
+    # Sem `ignoreErrors`. Esta fase não tem model persistido nem endpoint (FR-038), então não
+    # há erro real a silenciar — e um padrão de exclusão que não casa com nada é dívida que
+    # passa despercebida quando o código chegar.
+

@@ -1,0 +1,555 @@
+---
+import { findMunicipalityByIbgeCode } from "@parnaibadigital/api-client";
+import type { News } from "@parnaibadigital/types";
+import {
+  AdSlot,
+  AttributionFooter,
+  Badge,
+  Breadcrumb,
+  CurationStamp,
+  NewsCard,
+  NewsListItem,
+  PhotoFrame,
+  RegionalContextBox,
+  SectionHeading,
+  ShareBar,
+  Tag,
+} from "@parnaibadigital/ui";
+
+import PortalLayout from "../../layouts/PortalLayout.astro";
+import {
+  absoluteUrl,
+  authorHref,
+  categoryHref,
+  client,
+  dateTimeFormat,
+  municipalityHref,
+  neighborhoodHref,
+  newsHref,
+  placeLabel,
+  placeLabelForNews,
+} from "../../lib/site";
+import { breadcrumbList, newsArticle, type Crumb } from "../../lib/seo/structured-data";
+
+/**
+ * T066 — a superfície de matéria.
+ *
+ * Duas exigências dominam esta tela e nenhuma é estética:
+ *
+ * - **Selo de curadoria e rodapé de atribuição são obrigatórios** (Princípio V, FR-018). O
+ *   rodapé só aparece quando a matéria é curada, porque atribuir fonte a texto próprio seria
+ *   igualmente enganoso — a regra é "diga a verdade sobre a origem", não "mostre sempre".
+ * - **A tela precisa funcionar sem bairro** (edge case). Nenhum trecho abaixo assume
+ *   `neighborhoodIds[0]`: quando não há bairro, a trilha, o rótulo de lugar e o
+ *   `contentLocation` caem para o município — sem separador solto e sem bloco vazio.
+ *
+ * O anúncio in-article entra **depois do 2º parágrafo**, contado sobre os blocos de texto,
+ * não sobre os filhos do container: se contasse elementos, um título ou uma citação
+ * deslocariam o slot e a posição deixaria de ser a que o protótipo aprovou.
+ */
+export async function getStaticPaths() {
+  const slugs = await client.news.listAllSlugs();
+  return slugs.map((slug) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+
+const article = await client.news.findBySlug(slug ?? "");
+if (article === undefined) {
+  // Rota gerada por `getStaticPaths` nunca cai aqui. Se cair, o dado sumiu entre a geração
+  // e a renderização: reprovar a construção é o certo — um redirecionamento não é servível
+  // por saída estática e produziria uma página muda em produção.
+  throw new Error(`Matéria "${slug ?? ""}" não existe mais — dado fora de sincronia.`);
+}
+
+const typed: News = article;
+
+const municipality = findMunicipalityByIbgeCode(typed.municipalityIbgeCode);
+const firstNeighborhoodId = typed.neighborhoodIds[0];
+const neighborhood =
+  firstNeighborhoodId === undefined
+    ? undefined
+    : await client.geo.findNeighborhood(firstNeighborhoodId);
+
+const category = await client.categories.findBySlug(typed.categorySlug);
+const author = await client.authors.findBySlug(typed.authorSlug);
+
+const path = newsHref(typed.slug);
+const place = placeLabel(municipality, neighborhood);
+
+const crumbs: Crumb[] = [{ name: "Home", path: "/" }];
+if (municipality !== undefined) {
+  crumbs.push({ name: municipality.name, path: municipalityHref(municipality) });
+  if (neighborhood !== undefined) {
+    crumbs.push({ name: neighborhood.name, path: neighborhoodHref(municipality, neighborhood) });
+  }
+}
+if (category !== undefined) {
+  crumbs.push({ name: category.name, path: categoryHref(category.slug) });
+}
+crumbs.push({ name: typed.headline, path });
+
+/* Relacionadas: mesma editoria, sem repetir a própria matéria. */
+const relatedPage = await client.news.list({ categorySlug: typed.categorySlug, perPage: 6 });
+const related = await Promise.all(
+  relatedPage.data
+    .filter((item) => item.slug !== typed.slug)
+    .slice(0, 2)
+    .map(async (item) => ({ item, place: await placeLabelForNews(item) })),
+);
+
+const mostReadPage = await client.news.list({ perPage: 12 });
+const mostRead = await Promise.all(
+  [...mostReadPage.data]
+    .filter((item) => item.slug !== typed.slug)
+    .sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0))
+    .slice(0, 4)
+    .map(async (item, index) => ({ item, index: index + 1, place: await placeLabelForNews(item) })),
+);
+
+const gazetteDocument =
+  typed.gazetteDocumentId === undefined
+    ? undefined
+    : await client.gazette.findById(typed.gazetteDocumentId);
+
+/** Índice do parágrafo depois do qual o slot in-article entra. */
+let paragraphCount = 0;
+const bodyWithAd = typed.body.map((block) => {
+  if (block.type === "paragraph") paragraphCount += 1;
+  return { block, adAfter: block.type === "paragraph" && paragraphCount === 2 };
+});
+
+const meta = {
+  title: typed.headline,
+  description: typed.standfirst ?? typed.headline,
+  path,
+  type: "article" as const,
+  publishedAt: typed.publishedAt,
+  updatedAt: typed.updatedAt,
+  authorName: author?.name,
+  section: category?.name,
+  ...(typed.image === undefined ? {} : { image: typed.image.url, imageAlt: typed.image.alt }),
+};
+
+const schema = [
+  newsArticle({ article: typed, author, category, municipality, neighborhood, path }),
+  breadcrumbList(crumbs),
+];
+---
+
+<PortalLayout meta={meta} schema={schema}>
+  <AdSlot format="leaderboard" position="Topo do artigo" class="pd-article__ad-top" />
+
+  <div class="pd-article__grid">
+    <article class="pd-article">
+      <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+      <div class="pd-article__tags">
+        {
+          category !== undefined && (
+            <Badge
+              tone={category.tone === "urgent" ? "urgent" : "soft"}
+              dot={category.tone === "urgent"}
+            >
+              {category.name}
+            </Badge>
+          )
+        }
+        {typed.sponsored && <Badge tone="hot">Conteúdo patrocinado</Badge>}
+        {
+          neighborhood !== undefined && municipality !== undefined && (
+            <Tag size="sm" href={neighborhoodHref(municipality, neighborhood)}>
+              {neighborhood.name}
+            </Tag>
+          )
+        }
+        {
+          municipality !== undefined && (
+            <Tag
+              size="sm"
+              tone="neutral"
+              pin={false}
+              href={municipalityHref(municipality)}
+              data-pd-municipality
+            >
+              {municipality.name}
+            </Tag>
+          )
+        }
+      </div>
+
+      <h1 class="pd-article__headline">{typed.headline}</h1>
+
+      {typed.standfirst !== undefined && <p class="pd-article__lede">{typed.standfirst}</p>}
+
+      <div class="pd-article__byline">
+        {
+          author !== undefined && (
+            <a class="pd-article__author" href={authorHref(author.slug)}>
+              {author.name}
+            </a>
+          )
+        }
+
+        <span class="pd-article__dates">
+          Publicado em{" "}
+          <time datetime={typed.publishedAt}
+            >{dateTimeFormat.format(new Date(typed.publishedAt))}</time
+          >
+          {
+            typed.updatedAt !== typed.publishedAt && (
+              <>
+                {" · atualizado em "}
+                <time datetime={typed.updatedAt}>
+                  {dateTimeFormat.format(new Date(typed.updatedAt))}
+                </time>
+              </>
+            )
+          }
+        </span>
+
+        <CurationStamp curation={typed.curation} class="pd-article__curation" />
+      </div>
+
+      {
+        typed.image !== undefined && (
+          <figure class="pd-article__figure">
+            <PhotoFrame media={typed.image} ratio="16/9" priority />
+          </figure>
+        )
+      }
+
+      <div class="pd-article__body">
+        {
+          bodyWithAd.map(({ block, adAfter }) => (
+            <>
+              {block.type === "paragraph" && <p>{block.text}</p>}
+
+              {block.type === "heading" &&
+                (block.level === 3 ? <h3>{block.text}</h3> : <h2>{block.text}</h2>)}
+
+              {block.type === "list" &&
+                (block.ordered === true ? (
+                  <ol>
+                    {block.items.map((entry) => (
+                      <li>{entry}</li>
+                    ))}
+                  </ol>
+                ) : (
+                  <ul>
+                    {block.items.map((entry) => (
+                      <li>{entry}</li>
+                    ))}
+                  </ul>
+                ))}
+
+              {block.type === "quote" && (
+                <blockquote class="pd-article__quote">
+                  <p>{block.text}</p>
+                  {block.attribution !== undefined && <cite>{block.attribution}</cite>}
+                </blockquote>
+              )}
+
+              {block.type === "image" && (
+                <figure class="pd-article__figure">
+                  <PhotoFrame media={block.media} ratio="16/9" />
+                  <figcaption>{block.media.alt}</figcaption>
+                </figure>
+              )}
+
+              {adAfter && (
+                <AdSlot
+                  format="inread"
+                  position="In-article · após o 2º parágrafo"
+                  class="pd-article__ad-body"
+                />
+              )}
+            </>
+          ))
+        }
+      </div>
+
+      {
+        typed.regionalContext !== undefined && (
+          <RegionalContextBox
+            neighborhood={neighborhood?.name}
+            items={[
+              { label: "Município", value: municipality?.name ?? "—" },
+              ...(neighborhood === undefined
+                ? []
+                : [{ label: "Bairro", value: neighborhood.name }]),
+              { label: "Contexto", value: typed.regionalContext },
+            ]}
+            links={
+              municipality === undefined
+                ? []
+                : [
+                    {
+                      label: `Tudo sobre ${municipality.name}`,
+                      href: municipalityHref(municipality),
+                    },
+                  ]
+            }
+          />
+        )
+      }
+
+      {
+        gazetteDocument !== undefined && (
+          <aside class="pd-article__gazette">
+            <h2 class="pd-article__gazette-title">Documento oficial que originou esta matéria</h2>
+            <p class="pd-article__gazette-number">
+              {gazetteDocument.number} · {gazetteDocument.agency}
+            </p>
+            <a
+              class="pd-article__gazette-link"
+              href={gazetteDocument.sourceRef.sourceUrl}
+              rel="nofollow noopener"
+            >
+              Abrir o documento original
+            </a>
+          </aside>
+        )
+      }
+
+      <ShareBar url={absoluteUrl(path)} title={typed.headline} />
+
+      {
+        typed.curation.kind === "curated" && typed.attribution !== undefined && (
+          <AttributionFooter
+            sourceName={typed.attribution.sourceName}
+            sourceUrl={typed.attribution.sourceUrl}
+            archivedUrl={typed.attribution.archivedUrl}
+            publishedAt={typed.publishedAt}
+          />
+        )
+      }
+
+      {
+        related.length > 0 && (
+          <section class="pd-article__related" aria-label="Artigos relacionados">
+            <SectionHeading
+              linkLabel={category === undefined ? undefined : `Tudo sobre ${category.name}`}
+              href={category === undefined ? undefined : categoryHref(category.slug)}
+            >
+              Artigos relacionados
+            </SectionHeading>
+            <div class="pd-article__related-grid">
+              {related.map(({ item, place: itemPlace }) => (
+                <NewsCard
+                  headline={item.headline}
+                  href={newsHref(item.slug)}
+                  place={itemPlace}
+                  standfirst={item.standfirst}
+                  kickerTone={item.tone}
+                  curation={item.curation}
+                  image={item.image}
+                />
+              ))}
+            </div>
+          </section>
+        )
+      }
+    </article>
+
+    <aside class="pd-article__side" aria-label="Mais do portal">
+      <AdSlot format="rectangle" position="Sidebar do artigo" />
+
+      <section aria-label="Mais lidas">
+        <SectionHeading accent="blue">Mais lidas</SectionHeading>
+        {
+          mostRead.map(({ item, index, place: itemPlace }) => (
+            <NewsListItem
+              headline={item.headline}
+              href={newsHref(item.slug)}
+              place={itemPlace}
+              publishedAt={item.publishedAt}
+              index={index}
+              showPhoto={false}
+            />
+          ))
+        }
+      </section>
+
+      <AdSlot format="halfpage" position="Sidebar · sticky" sticky />
+    </aside>
+  </div>
+
+  <p class="pd-article__place-note" hidden>{place}</p>
+</PortalLayout>
+
+<style>
+  .pd-article__ad-top {
+    margin-bottom: var(--space-7);
+  }
+
+  .pd-article__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--grid-gap);
+    align-items: start;
+  }
+
+  .pd-article {
+    min-width: 0;
+    max-width: var(--content-measure);
+  }
+
+  .pd-article__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: center;
+    margin: var(--space-5) 0 var(--space-4);
+  }
+
+  .pd-article__headline {
+    margin: 0 0 var(--space-5);
+    font: var(--type-headline-xl);
+    color: var(--text-strong);
+    text-wrap: balance;
+  }
+
+  .pd-article__lede {
+    margin: 0 0 var(--space-6);
+    font: var(--type-lede);
+    color: var(--text-muted);
+  }
+
+  .pd-article__byline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-5);
+    align-items: center;
+    padding: var(--space-5) 0;
+    border-top: var(--border-hair) solid var(--border-subtle);
+    border-bottom: var(--border-hair) solid var(--border-subtle);
+  }
+
+  .pd-article__author {
+    font: var(--type-ui);
+    color: var(--text-strong);
+  }
+
+  .pd-article__dates {
+    font: var(--type-meta);
+    color: var(--text-faint);
+  }
+
+  .pd-article__curation {
+    margin-left: auto;
+  }
+
+  .pd-article__figure {
+    margin: var(--space-7) 0;
+  }
+
+  .pd-article__figure figcaption {
+    margin-top: var(--space-3);
+    font: var(--type-body-sm);
+    color: var(--text-faint);
+  }
+
+  .pd-article__body :global(p) {
+    margin: 0 0 var(--space-5);
+    font: var(--type-body);
+    color: var(--text-body);
+  }
+
+  .pd-article__body :global(h2) {
+    margin: var(--space-8) 0 var(--space-4);
+    font: var(--type-headline-lg);
+    color: var(--text-strong);
+  }
+
+  .pd-article__body :global(h3) {
+    margin: var(--space-7) 0 var(--space-4);
+    font: var(--type-headline-md);
+    color: var(--text-strong);
+  }
+
+  .pd-article__body :global(ul),
+  .pd-article__body :global(ol) {
+    margin: 0 0 var(--space-5);
+    padding-left: var(--space-7);
+    font: var(--type-body);
+    color: var(--text-body);
+  }
+
+  .pd-article__quote {
+    margin: var(--space-7) 0;
+    padding: var(--space-6) var(--space-7);
+    border-left: var(--border-accent) solid var(--pd-sun-500);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    background: var(--surface-context);
+  }
+
+  .pd-article__quote :global(p) {
+    margin: 0 0 var(--space-3);
+    font: var(--type-quote);
+    color: var(--text-strong);
+  }
+
+  .pd-article__quote cite {
+    font: var(--type-meta);
+    color: var(--text-muted);
+    font-style: normal;
+  }
+
+  .pd-article__ad-body {
+    margin: var(--space-8) 0;
+  }
+
+  .pd-article__gazette {
+    margin: var(--space-7) 0;
+    padding: var(--space-5);
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+  }
+
+  .pd-article__gazette-title {
+    margin: 0 0 var(--space-3);
+    font: var(--type-headline-sm);
+    color: var(--text-strong);
+  }
+
+  .pd-article__gazette-number {
+    margin: 0 0 var(--space-3);
+    font: var(--type-data);
+    color: var(--text-muted);
+  }
+
+  .pd-article__gazette-link {
+    font: var(--type-ui-sm);
+    color: var(--text-link);
+  }
+
+  .pd-article__related {
+    margin-top: var(--space-9);
+  }
+
+  .pd-article__related-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--grid-gap-tight);
+  }
+
+  .pd-article__side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  @media (width >= 640px) {
+    .pd-article__related-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (width >= 900px) {
+    .pd-article__grid {
+      grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
+    }
+  }
+</style>

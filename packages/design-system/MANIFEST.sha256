@@ -1,0 +1,19 @@
+# packages/design-system/MANIFEST.sha256
+#
+# SHA-256 de cada arquivo do Design System vendorizado (FR-001, SC-017).
+# Gerado por `tsx scripts/check-ds-integrity.ts --write` — NÃO editar à mão.
+# Regrave este arquivo apenas após reimportar o DS pelo MCP DesignSync.
+cd3785e8426a7d5159fe2b0af11ee352bec8969115c15f5f9ae1fd7555a40348  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/_adherence.oxlintrc.json
+8689646fa95b17e314d4eb37e9e1fa6f232c5647c2ebaf7bb2368018df9f1d86  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/_ds_bundle.js
+f5862ecbffc6e5f2151e95debc9058f0f0633e5288d93d3c4d7dbbbc29b5ffa3  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/_ds_manifest.json
+a123571b1e0069e67e40e3e8b9dd12d3fc79b9f1bc42edd8f6b6af0b4f931ce4  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/readme.md
+96d829da9288bf903bf96ad541803234b0307a43c41b66c977f95a167aea2f69  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/styles.css
+1a064177f9f422332881dbc852b6b9ef27753e92818108430014db20aa144832  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/base.css
+3f27b7a6063e9b82e3df479929e26f7c7b4477f6897330d76f1d9554f0b5426e  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/colors.css
+07c6a6a6d97698456170eb1fa722dcf159ad2b4b1a9749ec9a8ebb523abbc757  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/elevation.css
+807db2d7514754d2ccc01d2609c87950540c87f2702930ccbec7d13f32aebfb5  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/fonts.css
+b029c38c9d5c61e7b61167c210c8ea3643e32ef2046a4035923c95eb4ee406f9  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/motion.css
+9d9efaf869c63a0562cbc7c0db26517e908a6dd8e6d35a18aa865ea5c49a493b  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/spacing.css
+ee697921e2e746e2320a7299a262238d9f76f73d339be8e1316bf1457275493d  vendor/parna-badigital-design-system-fe257784-b721-4adc-b4cd-6b322b375c04/tokens/typography.css
+2db5ba1a70cc7eaf88224cd2e4623f9f00d0f67391b48f1ada7eae512cb8305b  vendor/prototype/ParnaibaDigital.dc.html
+8fe7df74405f3c55f49b7249c74ea1397e65d07dea2b1bd3b4a489bec2e28cbe  vendor/prototype/support.js

@@ -1,0 +1,220 @@
+/**
+ * Padrões de layout compartilhados pelas superfícies de listagem.
+ *
+ * Estes seletores existiriam, quase iguais, em nove telas (`/editoria`, `/eventos`,
+ * `/empresas`, `/diario-oficial`, `/utilidade-publica`, hub de município, bairro, autor,
+ * busca). "Quase iguais" é o problema: é assim que uma listagem passa a ter respiro
+ * diferente da outra sem que ninguém tenha decidido isso.
+ *
+ * Aqui não há decisão visual nova — cada valor é token do DS. O que este arquivo define é
+ * a *composição* (cabeçalho de listagem, grade com barra lateral, estado vazio), que é
+ * propriedade da aplicação e não do Design System: `packages/ui` publica componentes, não
+ * gabaritos de página.
+ */
+
+/* ——— Cabeçalho de listagem ——— */
+
+.pd-listing__header {
+  margin: var(--space-4) 0 var(--space-6);
+}
+
+.pd-listing__kicker {
+  display: block;
+  margin-bottom: var(--space-3);
+  font: var(--type-kicker);
+  color: var(--text-hot);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+
+.pd-listing__kicker--utility {
+  color: var(--pd-mar-700);
+}
+
+.pd-listing__title {
+  margin: 0;
+  font: var(--type-headline-xl);
+  color: var(--text-strong);
+  text-wrap: balance;
+}
+
+.pd-listing__lede {
+  max-width: 66ch;
+  margin: var(--space-3) 0 0;
+  font: var(--type-body-sm);
+  color: var(--text-muted);
+}
+
+/* ——— Grade com barra lateral ——— */
+
+.pd-listing__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--grid-gap);
+  align-items: start;
+}
+
+.pd-listing__grid > section {
+  min-width: 0;
+}
+
+.pd-listing__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.pd-listing__cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--grid-gap-tight);
+}
+
+.pd-listing__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--grid-gap-tight);
+}
+
+.pd-listing__ad {
+  margin: var(--space-7) 0;
+}
+
+/* ——— Estado vazio (FR-014) ———
+   Sempre com uma saída. Um estado vazio que só informa deixa a pessoa parada; o que oferece
+   o próximo passo devolve a navegação. */
+
+.pd-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-12) var(--space-7);
+  border: var(--border-hair) dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-subtle);
+  text-align: center;
+}
+
+.pd-empty__title {
+  margin: 0;
+  font: var(--type-headline-md);
+  color: var(--text-strong);
+}
+
+.pd-empty__text {
+  max-width: 46ch;
+  margin: 0;
+  font: var(--type-body-sm);
+  color: var(--text-muted);
+}
+
+.pd-empty__action {
+  font: var(--type-ui);
+  color: var(--text-link);
+}
+
+/* ——— Barra de filtros por link (nunca por script) ——— */
+
+.pd-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: var(--border-hair) solid var(--border-default);
+}
+
+.pd-filters__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-9);
+  padding: 0 var(--space-5);
+  border: var(--border-hair) solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  font: var(--type-ui);
+  color: var(--text-muted);
+}
+
+.pd-filters__chip[aria-current="page"] {
+  border-color: var(--pd-blue-600);
+  background: var(--surface-brand-soft);
+  color: var(--text-brand);
+}
+
+/* ——— Cartão de item de listagem (documento, vaga, empresa) ——— */
+
+.pd-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: var(--border-hair) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-1);
+}
+
+.pd-item__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.pd-item__meta {
+  font: var(--type-meta);
+
+  /* Correção de contraste (Princípio III, SC-004): `--text-faint` (= `--pd-ink-500`) rende
+     4,04:1 sobre `--surface-utility` e 4,29:1 sobre `--surface-subtle` — abaixo de 4,5:1 nos
+     dois. `--text-faint` continua válido para texto grande e para elemento decorativo; para
+     meta em corpo pequeno, sobre fundo tingido, o degrau certo é `--text-muted`. */
+  color: var(--text-muted);
+}
+
+.pd-item__title {
+  margin: 0;
+  font: var(--type-headline-sm);
+  color: var(--text-strong);
+}
+
+.pd-item__text {
+  margin: 0;
+  font: var(--type-body-sm);
+  color: var(--text-muted);
+}
+
+.pd-item__value {
+  font: var(--type-data);
+  color: var(--text-strong);
+}
+
+.pd-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.pd-list-reset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--grid-gap-tight);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (width >= 640px) {
+  .pd-listing__cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (width >= 900px) {
+  .pd-listing__grid {
+    grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
+  }
+}

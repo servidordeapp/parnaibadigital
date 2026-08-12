@@ -1,0 +1,202 @@
+---
+import Icon from "../core/Icon.astro";
+
+/**
+ * T040 — paginação inteiramente por `<a href>` (Princípio XI, FR-010).
+ *
+ * O DS publica `Pagination` com `onChange`/`onLoadMore` e `<button>`. Nada disso sobrevive
+ * sem JavaScript, e paginação é o caminho pelo qual o rastreador alcança o arquivo do
+ * portal: um botão que troca a lista por script deixa as páginas 2 em diante invisíveis
+ * para a busca (Princípio II) e inalcançáveis para quem não executa script.
+ *
+ * Aqui cada número é um endereço próprio, montado por `hrefFor`, e "Carregar mais" é o
+ * link para a página seguinte — o mesmo destino, com o rótulo do protótipo. Um
+ * enriquecimento futuro pode interceptar o clique e concatenar a lista; o estado inicial
+ * já é o correto, que é a ordem que o Princípio XI exige.
+ *
+ * `rel="prev"`/`rel="next"` continuam declarados por serem gratuitos e ainda lidos por
+ * parte dos agentes; a canônica de cada página é responsabilidade de `meta.ts` (T080).
+ */
+interface Props {
+  page: number;
+  totalPages: number;
+  /** Monta o endereço de uma página. A rota é da tela, nunca deste componente (FR-026). */
+  hrefFor: (page: number) => string;
+  /** Quantos números mostrar em volta da página corrente. */
+  window?: number | undefined;
+  showLoadMore?: boolean | undefined;
+  /** Nomeia o `<nav>` — "Notícias de Educação", "Documentos oficiais"… */
+  label?: string | undefined;
+  class?: string | undefined;
+}
+
+const {
+  page,
+  totalPages,
+  hrefFor,
+  window: windowSize = 1,
+  showLoadMore = false,
+  label = "Paginação",
+  class: className,
+} = Astro.props;
+
+const first = Math.max(1, Math.min(page - windowSize, totalPages - windowSize * 2));
+const last = Math.min(totalPages, Math.max(page + windowSize, windowSize * 2 + 1));
+const pages = Array.from({ length: Math.max(0, last - first + 1) }, (_, i) => first + i);
+
+const hasPrevious = page > 1;
+const hasNext = page < totalPages;
+---
+
+<nav class:list={["pd-pagination", className]} aria-label={label}>
+  {
+    showLoadMore && hasNext && (
+      <a class="pd-pagination__more" href={hrefFor(page + 1)} rel="next">
+        Carregar mais notícias
+        <Icon name="chevron-right" size="sm" />
+      </a>
+    )
+  }
+
+  <div class="pd-pagination__pages">
+    {
+      hasPrevious ? (
+        <a
+          class="pd-pagination__step"
+          href={hrefFor(page - 1)}
+          rel="prev"
+          aria-label="Página anterior"
+        >
+          <Icon name="chevron-right" size="sm" class="pd-pagination__flip" />
+        </a>
+      ) : (
+        /* Sem destino não há link: um `<a>` sem `href` tem papel genérico, e `aria-label`
+           em papel genérico é atributo proibido (axe `aria-prohibited-attr`). O passo
+           inativo é decoração — quem navega por teclado ou leitor de tela não ganha nada
+           tabulando até um controle que não leva a lugar nenhum. */
+        <span class="pd-pagination__step pd-pagination__step--off" aria-hidden="true">
+          <Icon name="chevron-right" size="sm" class="pd-pagination__flip" />
+        </span>
+      )
+    }
+
+    {
+      pages.map((number) => (
+        <a
+          class:list={["pd-pagination__page", number === page && "pd-pagination__page--active"]}
+          href={hrefFor(number)}
+          aria-current={number === page ? "page" : undefined}
+          aria-label={`Página ${String(number)}`}
+        >
+          {number}
+        </a>
+      ))
+    }
+
+    <span class="pd-pagination__total">de {totalPages}</span>
+
+    {
+      hasNext ? (
+        <a
+          class="pd-pagination__step"
+          href={hrefFor(page + 1)}
+          rel="next"
+          aria-label="Próxima página"
+        >
+          <Icon name="chevron-right" size="sm" />
+        </a>
+      ) : (
+        /* Sem destino não há link: um `<a>` sem `href` tem papel genérico, e `aria-label`
+           em papel genérico é atributo proibido (axe `aria-prohibited-attr`). O passo
+           inativo é decoração — quem navega por teclado ou leitor de tela não ganha nada
+           tabulando até um controle que não leva a lugar nenhum. */
+        <span class="pd-pagination__step pd-pagination__step--off" aria-hidden="true">
+          <Icon name="chevron-right" size="sm" />
+        </span>
+      )
+    }
+  </div>
+</nav>
+
+<style>
+  .pd-pagination {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    align-items: center;
+    padding: var(--space-7) 0;
+  }
+
+  .pd-pagination__more {
+    display: inline-flex;
+    gap: var(--space-3);
+    align-items: center;
+    height: var(--tap-min);
+    padding: 0 var(--space-7);
+    border: var(--border-hair) solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    font: var(--type-ui);
+    color: var(--text-brand);
+    transition: var(--transition-interactive);
+  }
+
+  .pd-pagination__more:hover {
+    border-color: var(--border-brand);
+    background: var(--surface-card-hover);
+    text-decoration: none;
+  }
+
+  .pd-pagination__pages {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+  }
+
+  /* 36px do DS derivado da escala (32 + 4) — o valor é o mesmo, a origem é token. */
+  .pd-pagination__page,
+  .pd-pagination__step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: calc(var(--space-8) + var(--space-2));
+    height: calc(var(--space-8) + var(--space-2));
+    border: var(--border-hair) solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    font: var(--type-ui-sm);
+    color: var(--text-muted);
+    transition: var(--transition-interactive);
+  }
+
+  .pd-pagination__page:hover,
+  .pd-pagination__step:hover {
+    border-color: var(--border-brand);
+    color: var(--text-brand);
+    text-decoration: none;
+  }
+
+  .pd-pagination__page--active {
+    border-color: var(--surface-brand);
+    background: var(--surface-brand);
+    color: var(--text-inverse);
+  }
+
+  /* Sem `href` o passo já não é focalizável nem clicável; a cor só torna isso visível. */
+  .pd-pagination__step--off {
+    color: var(--text-faint);
+    opacity: 0.5;
+  }
+
+  /* O vocabulário de ícones do DS não tem `chevron-left`; espelhar o direito mantém o
+     conjunto fechado em vez de abrir exceção por um glifo. */
+  .pd-pagination__flip {
+    transform: scaleX(-1);
+  }
+
+  .pd-pagination__total {
+    padding: 0 var(--space-2);
+    font: var(--type-meta);
+    color: var(--text-faint);
+  }
+</style>

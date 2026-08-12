@@ -1,0 +1,79 @@
+---
+import type { IconName } from "@parnaibadigital/design-system/icons";
+
+import Icon from "./Icon.astro";
+
+/**
+ * Badge e kicker. É o único lugar do produto onde CAIXA ALTA é permitida — 11px em mono
+ * com tracking largo (`SÃO JOSÉ · TRÂNSITO`, `URGENTE`, `[ANÚNCIO ADSENSE]`).
+ *
+ * A caixa vem de `text-transform`, e o conteúdo é escrito em caixa normal: assim o leitor
+ * de tela anuncia "Urgente" e não "U-R-G-E-N-T-E".
+ */
+interface Props {
+  tone?: "urgent" | "brand" | "hot" | "utility" | "soft" | "neutral" | "outline" | undefined;
+  icon?: IconName | undefined;
+  dot?: boolean | undefined;
+  class?: string | undefined;
+}
+
+const { tone = "neutral", icon, dot = false, class: className } = Astro.props;
+---
+
+<span class:list={["pd-badge", `pd-badge--${tone}`, className]}>
+  {dot && <span class="pd-badge__dot" aria-hidden="true" />}
+  {icon !== undefined && <Icon name={icon} size="xs" />}
+  <slot />
+</span>
+
+<style>
+  .pd-badge {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    padding: var(--space-1) var(--space-3);
+    border: var(--border-hair) solid transparent;
+    border-radius: var(--radius-xs);
+    font: var(--type-kicker);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  .pd-badge__dot {
+    width: var(--space-2);
+    height: var(--space-2);
+    border-radius: var(--radius-pill);
+    background: currentcolor;
+  }
+
+  .pd-badge--urgent {
+    background: var(--pd-urgent-600);
+    color: var(--text-inverse);
+  }
+  .pd-badge--brand {
+    background: var(--surface-brand);
+    color: var(--text-inverse);
+  }
+  .pd-badge--hot {
+    background: var(--surface-hot);
+    color: var(--pd-ink-950);
+  }
+  .pd-badge--utility {
+    background: var(--pd-mar-500);
+    color: var(--text-inverse);
+  }
+  .pd-badge--soft {
+    background: var(--surface-brand-soft);
+    color: var(--text-brand);
+  }
+  .pd-badge--neutral {
+    background: var(--pd-ink-100);
+    color: var(--text-muted);
+  }
+
+  .pd-badge--outline {
+    border-color: var(--border-default);
+    background: transparent;
+    color: var(--text-muted);
+  }
+</style>

@@ -1,0 +1,106 @@
+---
+import type { PharmacyOnDuty } from "./types";
+
+import WidgetCard from "./WidgetCard.astro";
+
+/**
+ * Farmácias de plantão.
+ *
+ * **O contrato desta fase não tem entidade de farmácia.** `openapi-v1.yaml` cobre notícia,
+ * geografia, Diário Oficial, eventos, empresas e utilidade pública — e `UtilityGroup` é uma
+ * enumeração fechada em concursos, empregos, licitações e editais. Inventar aqui um tipo
+ * `Pharmacy` criaria uma entidade fora do contrato, exatamente o que o Princípio VII
+ * proíbe (D-10: o OpenAPI é a fonte de verdade, não a necessidade de uma tela).
+ *
+ * Consequência prática e assumida: o widget existe, é reproduzido do protótipo e, sem fonte
+ * de dado, renderiza o **estado vazio** (FR-014) — que explica a ausência em vez de exibir
+ * uma caixa muda. Quando a entidade entrar no contrato, só a origem dos `items` muda.
+ */
+interface Props {
+  items?: readonly PharmacyOnDuty[] | undefined;
+  /** "hoje, 4/8" — o dia do plantão, formatado pela tela. */
+  dateLabel?: string | undefined;
+  level?: "h2" | "h3" | undefined;
+  class?: string | undefined;
+}
+
+const { items = [], dateLabel, level = "h2", class: className } = Astro.props;
+---
+
+<WidgetCard
+  title="Farmácias de plantão"
+  icon="pill"
+  level={level}
+  updatedLabel={dateLabel}
+  class={className}
+>
+  {
+    items.length === 0 ? (
+      <p class="pd-pharmacy__empty">
+        O plantão de hoje ainda não foi publicado pela vigilância sanitária. Assim que sair, aparece
+        aqui.
+      </p>
+    ) : (
+      <ul class="pd-pharmacy__list">
+        {items.map((pharmacy) => (
+          <li class="pd-pharmacy__item">
+            <span class="pd-pharmacy__name">{pharmacy.name}</span>
+            <span class="pd-pharmacy__address">{pharmacy.address}</span>
+            <span class="pd-pharmacy__hours">{pharmacy.hours}</span>
+            {pharmacy.phone !== undefined && (
+              <a class="pd-pharmacy__phone" href={`tel:${pharmacy.phone.replace(/\D/g, "")}`}>
+                {pharmacy.phone}
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</WidgetCard>
+
+<style>
+  .pd-pharmacy__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-pharmacy__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding-bottom: var(--space-3);
+    border-bottom: var(--border-hair) solid var(--border-subtle);
+  }
+
+  .pd-pharmacy__item:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .pd-pharmacy__name {
+    font: var(--type-ui);
+    color: var(--text-strong);
+  }
+
+  .pd-pharmacy__address,
+  .pd-pharmacy__hours {
+    font: var(--type-meta);
+    color: var(--text-muted);
+  }
+
+  .pd-pharmacy__phone {
+    font: var(--type-data);
+    color: var(--pd-mar-700);
+  }
+
+  .pd-pharmacy__empty {
+    margin: 0;
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+</style>

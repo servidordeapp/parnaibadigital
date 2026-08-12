@@ -1,0 +1,90 @@
+---
+import Icon from "../core/Icon.astro";
+
+/**
+ * Abertura de seção: régua de 4px, título e, opcionalmente, o link "ver tudo" à direita.
+ *
+ * A régua cor-de-sol é a marca de abertura editorial do DS; a azul marca blocos de apoio
+ * (mais lidas, mais comentadas). Não é decoração intercambiável — é como a página comunica
+ * "isto é conteúdo principal" contra "isto é coluna lateral".
+ *
+ * O nível do título é prop obrigatória de fato (com padrão `h2`) porque a hierarquia
+ * pertence à página, não ao componente: a mesma seção é `h2` na home e `h3` dentro de um
+ * bloco aninhado, e fixar aqui produziria salto de nível em uma das duas.
+ */
+interface Props {
+  accent?: "sun" | "blue" | undefined;
+  level?: "h2" | "h3" | undefined;
+  /** Rótulo do link à direita ("Ver todas as editorias"). Sem `href` não é renderizado. */
+  linkLabel?: string | undefined;
+  href?: string | undefined;
+  class?: string | undefined;
+}
+
+const { accent = "sun", level = "h2", linkLabel, href, class: className } = Astro.props;
+
+const Heading = level;
+const showLink = linkLabel !== undefined && href !== undefined;
+---
+
+<div class:list={["pd-section-heading", className]}>
+  <span class:list={["pd-section-heading__rule", `pd-section-heading__rule--${accent}`]}></span>
+
+  <Heading class="pd-section-heading__title"><slot /></Heading>
+
+  {
+    showLink && (
+      <a class="pd-section-heading__link" href={href}>
+        {linkLabel}
+        <Icon name="arrow-right" size="xs" />
+      </a>
+    )
+  }
+</div>
+
+<style>
+  .pd-section-heading {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    margin-bottom: var(--space-5);
+    padding-bottom: var(--space-3);
+    border-bottom: var(--border-hair) solid var(--border-default);
+  }
+
+  .pd-section-heading__rule {
+    flex: none;
+    width: var(--space-2);
+    height: var(--space-6);
+    border-radius: var(--radius-xs);
+  }
+
+  .pd-section-heading__rule--sun {
+    background: var(--pd-sun-500);
+  }
+
+  .pd-section-heading__rule--blue {
+    background: var(--pd-blue-600);
+  }
+
+  .pd-section-heading__title {
+    margin: 0;
+    font: var(--type-headline-md);
+    color: var(--text-strong);
+    letter-spacing: var(--tracking-snug);
+  }
+
+  .pd-section-heading__link {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    margin-left: auto;
+    font: var(--type-ui-sm);
+    color: var(--text-link);
+    white-space: nowrap;
+  }
+
+  .pd-section-heading__link:hover {
+    color: var(--text-link-hover);
+  }
+</style>

@@ -1,0 +1,306 @@
+---
+import {
+  AdSlot,
+  Badge,
+  Button,
+  Card,
+  Checkbox,
+  CurationStamp,
+  Icon,
+  IconButton,
+  Input,
+  PhotoFrame,
+  SectionHeading,
+  Select,
+  Skeleton,
+  Tag,
+  Wordmark,
+} from "@parnaibadigital/ui";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { groups, inventory } from "../../lib/inventory";
+
+import "../../styles/portal.css";
+
+/**
+ * T112 / FR-005 — os **estados** de cada componente: repouso, hover, press, foco,
+ * desabilitado e selecionado, mais o alternador de tema local.
+ *
+ * Hover, press e foco não podem ser demonstrados por captura estática — são estados que só
+ * existem sob interação. A galeria os torna verificáveis de outro jeito: renderiza o
+ * componente real e o teste de a11y (T109) percorre a página nos dois temas. Um catálogo de
+ * imagens diria que os estados existem; este diz que funcionam.
+ */
+export function getStaticPaths() {
+  return groups().map((grupo) => ({ params: { grupo } }));
+}
+
+const { grupo } = Astro.params;
+const entries = inventory().filter((entry) => entry.group === grupo);
+---
+
+<BaseLayout
+  title={`Componentes · ${grupo ?? ""}`}
+  description={`Estados e variantes dos componentes do grupo ${grupo ?? ""}.`}
+  noindex
+>
+  <div class="pd-gallery">
+    <p class="pd-gallery__back"><a href="/componentes">← Todo o inventário</a></p>
+
+    <header class="pd-listing__header">
+      <span class="pd-listing__kicker">Grupo</span>
+      <h1 class="pd-listing__title">{grupo}</h1>
+      <p class="pd-listing__lede">
+        {entries.length} componente(s). Alterne o tema pelo controle abaixo para conferir os dois — um
+        tema aprovado não diz nada sobre o outro.
+      </p>
+    </header>
+
+    <button
+      class="pd-gallery__theme"
+      type="button"
+      data-pd-theme-toggle
+      aria-label="Alternar tema"
+      hidden
+    >
+      Alternar tema
+    </button>
+
+    <ul class="pd-gallery__list">
+      {
+        entries.map((entry) => (
+          <li class="pd-item">
+            <div class="pd-item__head">
+              <h2 class="pd-item__title">{entry.name}</h2>
+              {entry.status === "adicao-justificada" && <Badge tone="hot">Adição</Badge>}
+              {!entry.implemented && <Badge tone="urgent">Pendente</Badge>}
+            </div>
+            <p class="pd-item__meta">{entry.path}</p>
+            {entry.justification !== undefined && (
+              <p class="pd-item__text">{entry.justification}</p>
+            )}
+          </li>
+        ))
+      }
+    </ul>
+
+    {
+      grupo === "core" && (
+        <section class="pd-gallery__states" aria-label="Estados dos componentes core">
+          <SectionHeading>Estados</SectionHeading>
+
+          <h3 class="pd-gallery__label">Button — repouso, hover, press, foco, desabilitado</h3>
+          <div class="pd-gallery__row">
+            <Button>Primário</Button>
+            <Button variant="hot">Conversão</Button>
+            <Button variant="secondary">Secundário</Button>
+            <Button variant="ghost">Ghost</Button>
+            <Button disabled>Desabilitado</Button>
+            <Button size="sm">Pequeno</Button>
+            <Button size="lg">Grande</Button>
+          </div>
+
+          <h3 class="pd-gallery__label">IconButton</h3>
+          <div class="pd-gallery__row">
+            <IconButton icon="search" label="Buscar" />
+            <IconButton icon="menu" label="Navegação" tone="brand" />
+            <IconButton icon="external-link" label="Abrir fora" tone="hot" />
+          </div>
+
+          <h3 class="pd-gallery__label">Badge e Tag — todos os tons</h3>
+          <div class="pd-gallery__row">
+            <Badge tone="urgent" dot>
+              Urgente
+            </Badge>
+            <Badge tone="brand">Trânsito</Badge>
+            <Badge tone="hot">Destaque</Badge>
+            <Badge tone="utility" icon="life-buoy">
+              Serviço
+            </Badge>
+            <Badge tone="soft">Editoria</Badge>
+            <Tag size="sm" count={12}>
+              São José
+            </Tag>
+            <Tag tone="hot" size="sm">
+              Pedra do Sal
+            </Tag>
+            <Tag tone="neutral" size="sm" pin={false} active>
+              Selecionado
+            </Tag>
+          </div>
+
+          <h3 class="pd-gallery__label">Campos — repouso, erro, seleção</h3>
+          <div class="pd-gallery__column">
+            <Input id="gal-input" label="Busca" icon="search" placeholder="Bairro ou serviço" />
+            <Input
+              id="gal-input-erro"
+              label="E-mail"
+              value="parnaiba@"
+              error="Informe um e-mail válido."
+            />
+            <Select
+              id="gal-select"
+              label="Cidade"
+              options={[
+                { value: "parnaiba", label: "Parnaíba" },
+                { value: "luis-correia", label: "Luís Correia" },
+              ]}
+            />
+            <Checkbox id="gal-check" label="Quero alertas do meu bairro." checked />
+            <Checkbox id="gal-check-off" label="Opção desabilitada" disabled />
+          </div>
+
+          <h3 class="pd-gallery__label">Superfícies — Card, PhotoFrame, Skeleton</h3>
+          <div class="pd-gallery__row">
+            <Card>
+              <p class="pd-item__text">Card padrão</p>
+            </Card>
+            <Card tone="utility" interactive>
+              <p class="pd-item__text">Card de serviço</p>
+            </Card>
+            <PhotoFrame ratio="4/3" class="pd-gallery__photo" />
+            <Skeleton />
+          </div>
+
+          <h3 class="pd-gallery__label">Ícones do vocabulário fechado</h3>
+          <div class="pd-gallery__row">
+            <Icon name="map-pin" size="md" title="Bairro" />
+            <Icon name="sparkles" size="md" title="Curadoria" />
+            <Icon name="badge-check" size="md" title="Revisão humana" />
+            <Icon name="calendar-days" size="md" title="Data" />
+            <Icon name="pill" size="md" title="Farmácia" />
+            <Icon name="briefcase" size="md" title="Vagas" />
+          </div>
+        </section>
+      )
+    }
+
+    {
+      grupo === "brand" && (
+        <section class="pd-gallery__states" aria-label="Wordmark">
+          <SectionHeading>Estados</SectionHeading>
+          <div class="pd-gallery__column">
+            <Wordmark />
+            <Wordmark showTagline />
+          </div>
+        </section>
+      )
+    }
+
+    {
+      grupo === "news" && (
+        <section class="pd-gallery__states" aria-label="Selo de curadoria">
+          <SectionHeading>Estados</SectionHeading>
+          <div class="pd-gallery__column">
+            <CurationStamp
+              curation={{
+                kind: "curated",
+                reviewedByHuman: true,
+                updatedAt: new Date().toISOString(),
+              }}
+            />
+            <CurationStamp
+              curation={{
+                kind: "original",
+                reviewedByHuman: false,
+                updatedAt: new Date(Date.now() - 3_600_000).toISOString(),
+              }}
+              showLabel={false}
+            />
+          </div>
+        </section>
+      )
+    }
+
+    {
+      grupo === "ads" && (
+        <section class="pd-gallery__states" aria-label="Formatos de anúncio">
+          <SectionHeading>Formatos</SectionHeading>
+          <div class="pd-gallery__column">
+            <AdSlot format="leaderboard" position="Exemplo" />
+            <AdSlot format="rectangle" position="Exemplo" />
+            <AdSlot format="inread" position="Exemplo" />
+          </div>
+        </section>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<script>
+  import { initThemeToggle } from "@parnaibadigital/ui/theme/theme-toggle";
+
+  initThemeToggle();
+</script>
+
+<style>
+  .pd-gallery {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: var(--space-8) var(--container-gutter) var(--space-12);
+  }
+
+  .pd-gallery__back {
+    margin: 0 0 var(--space-5);
+    font: var(--type-ui-sm);
+  }
+
+  .pd-gallery__theme {
+    min-height: var(--tap-min);
+    margin-bottom: var(--space-7);
+    padding: 0 var(--space-5);
+    border: var(--border-hair) solid var(--border-default);
+    border-radius: var(--radius-pill);
+    background: var(--surface-card);
+    font: var(--type-ui-sm);
+    color: var(--text-brand);
+    cursor: pointer;
+  }
+
+  .pd-gallery__list {
+    display: grid;
+    /* piso da trilha do grid do inventário — superfície de desenvolvimento (Assumption 4),
+       fora do produto.
+       check-tokens-disable-next-line */
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-5);
+    margin: 0 0 var(--space-9);
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-gallery__states {
+    padding-top: var(--space-7);
+    border-top: var(--border-hair) solid var(--border-default);
+  }
+
+  .pd-gallery__label {
+    margin: var(--space-7) 0 var(--space-4);
+    font: var(--type-kicker);
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-gallery__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    align-items: center;
+  }
+
+  .pd-gallery__column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    /* largura do card do inventário; superfície de desenvolvimento (Assumption 4).
+       check-tokens-disable-next-line */
+    max-width: 420px;
+  }
+
+  .pd-gallery__photo {
+    /* espécime de componente no inventário; ver acima.
+       check-tokens-disable-next-line */
+    width: 160px;
+  }
+</style>

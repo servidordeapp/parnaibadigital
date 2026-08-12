@@ -1,0 +1,170 @@
+---
+import type { AdminNavItem } from "./types";
+
+import Icon from "../core/Icon.astro";
+import Wordmark from "../brand/Wordmark.astro";
+
+/**
+ * T096 — navegação lateral do painel, com o realce de item ativo do protótipo: fundo,
+ * cor e régua de 3px cor-de-sol.
+ *
+ * O item ativo recebe `aria-current="page"` além do realce visual. Cor sozinha não comunica
+ * estado (WCAG 1.4.1), e num painel de 11 telas saber onde se está é a informação mais
+ * usada da interface.
+ *
+ * A gaveta móvel é `<details>`, o mesmo mecanismo do portal — abaixo de 900px a coluna
+ * lateral vira um menu, sem JavaScript.
+ */
+interface Props {
+  items: readonly AdminNavItem[];
+  class?: string | undefined;
+}
+
+const { items, class: className } = Astro.props;
+---
+
+<details class:list={["pd-admin-nav", className]} open>
+  {
+    /* A marca fica FORA do `<summary>`. Um `<a>` dentro dele é um link aninhado num botão —
+     `nested-interactive` no axe, e ambíguo na prática: o mesmo clique podia navegar para a
+     home ou abrir a gaveta, e qual dos dois acontece depende do pixel. O cabeçalho vira uma
+     linha com a marca à esquerda e o `<summary>` reduzido ao que ele sempre foi de fato: o
+     controle que abre e fecha. */
+  }
+  <div class="pd-admin-nav__brand">
+    <Wordmark href="/" onDark />
+
+    <summary class="pd-admin-nav__summary">
+      <Icon name="menu" size="md" class="pd-admin-nav__menu-icon" title="Abrir navegação" />
+    </summary>
+  </div>
+
+  <nav aria-label="Seções do painel">
+    <ul class="pd-admin-nav__list">
+      {
+        items.map((item) => (
+          <li>
+            <a
+              class:list={["pd-admin-nav__link", item.active === true && "is-active"]}
+              href={item.href}
+              aria-current={item.active === true ? "page" : undefined}
+            >
+              <Icon name={item.icon} size="sm" />
+              <span class="pd-admin-nav__label">{item.label}</span>
+              {item.badge !== undefined && (
+                <span
+                  class:list={[
+                    "pd-admin-nav__badge",
+                    item.hot === true && "pd-admin-nav__badge--hot",
+                  ]}
+                >
+                  {item.badge}
+                </span>
+              )}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+</details>
+
+<style>
+  .pd-admin-nav {
+    background: var(--surface-header);
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-admin-nav__brand {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--header-height);
+    padding: 0 var(--space-5);
+  }
+
+  .pd-admin-nav__summary {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .pd-admin-nav__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .pd-admin-nav__list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: var(--space-4) 0;
+    list-style: none;
+  }
+
+  .pd-admin-nav__link {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    min-height: var(--tap-min);
+    padding: var(--space-3) var(--space-5);
+
+    /* A régua de 3px vive na borda esquerda, transparente até o item ficar ativo — assim
+       o texto não desloca ao mudar de seção. */
+    border-left: var(--border-accent) solid transparent;
+    font: var(--type-ui);
+    color: var(--text-inverse-muted);
+    transition: var(--transition-interactive);
+  }
+
+  .pd-admin-nav__link:hover {
+    background: rgb(
+      255 255 255 / 6%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- transparência sobre chrome azul, declarada no readme do DS */
+    color: var(--text-inverse);
+  }
+
+  .pd-admin-nav__link.is-active {
+    border-left-color: var(--pd-sun-500);
+    background: rgb(
+      255 255 255 / 10%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- par do estado acima, mesma origem */
+    color: var(--text-inverse);
+  }
+
+  .pd-admin-nav__link:focus-visible {
+    outline: var(--border-thick) solid var(--pd-sun-500);
+    outline-offset: calc(var(--space-1) * -1);
+  }
+
+  .pd-admin-nav__label {
+    flex: 1;
+  }
+
+  .pd-admin-nav__badge {
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-pill);
+    background: rgb(
+      255 255 255 / 12%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- transparência sobre chrome azul, declarada no readme do DS */
+    font: var(--type-kicker);
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-admin-nav__badge--hot {
+    color: var(--pd-sun-400);
+  }
+
+  @media (width >= 900px) {
+    .pd-admin-nav__menu-icon {
+      display: none;
+    }
+
+    /* Acima de 900px a gaveta é sempre uma coluna: o controle de abrir some junto do ícone,
+       e resta a marca. */
+    .pd-admin-nav__summary {
+      display: none;
+    }
+  }
+</style>

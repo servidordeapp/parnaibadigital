@@ -1,0 +1,112 @@
+---
+/**
+ * T039 — adição justificada (FR-007). O DS não publica estado de carregamento; o protótipo
+ * usa um e FR-014 o exige.
+ *
+ * O ponto do componente não é a barra cinza: é o anúncio. Um bloco que só treme na tela
+ * não existe para quem usa leitor de tela, e a pessoa fica ouvindo silêncio sem saber se a
+ * página travou. Por isso o esqueleto carrega `aria-busy` e um rótulo textual anunciado
+ * uma única vez pela região — nunca uma vez por barra (Princípio III).
+ *
+ * Sem JavaScript o esqueleto simplesmente não aparece: toda superfície desta fase é
+ * estática e chega pronta. Ele existe para o enriquecimento que carrega depois (busca,
+ * listagem do painel), e é isso que o mantém honesto em vez de decorativo.
+ */
+interface Props {
+  /** `text` empilha linhas; `card` e `media` reservam a proporção do bloco real. */
+  variant?: "text" | "card" | "media" | undefined;
+  /** Só para `text`: quantas linhas simular. */
+  lines?: number | undefined;
+  /** O que está carregando. Vira o anúncio a tecnologia assistiva. */
+  loadingLabel?: string | undefined;
+  class?: string | undefined;
+}
+
+const {
+  loadingLabel = "Carregando conteúdo",
+  variant = "text",
+  lines = 3,
+  class: className,
+} = Astro.props;
+
+/** A última linha de um parágrafo nunca fecha na margem — o esqueleto mente se fechar. */
+const widths = ["100%", "96%", "88%", "92%", "70%"];
+---
+
+<div
+  class:list={["pd-skeleton", `pd-skeleton--${variant}`, className]}
+  role="status"
+  aria-busy="true"
+  aria-live="polite"
+>
+  <span class="pd-skeleton__label">{loadingLabel}</span>
+  {
+    variant === "text" ? (
+      Array.from({ length: lines }, (_, index) => (
+        <span
+          class="pd-skeleton__bar"
+          style={`width: ${index === lines - 1 ? "70%" : (widths[index % widths.length] ?? "100%")}`}
+          aria-hidden="true"
+        />
+      ))
+    ) : (
+      <span class="pd-skeleton__block" aria-hidden="true" />
+    )
+  }
+</div>
+
+<style>
+  .pd-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  /* Visualmente escondido, ainda no fluxo de leitura assistiva. */
+  .pd-skeleton__label {
+    position: absolute;
+    width: var(--border-hair);
+    height: var(--border-hair);
+    padding: 0;
+    margin: calc(var(--border-hair) * -1);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pd-skeleton__bar,
+  .pd-skeleton__block {
+    display: block;
+    background: var(--surface-subtle);
+    border-radius: var(--radius-xs);
+    /* A varredura é o único movimento; `motion.css` a reduz a 1ms sob reduced-motion. */
+    animation: pd-skeleton-pulse var(--dur-slow) var(--ease-in-out) infinite alternate;
+  }
+
+  .pd-skeleton__bar {
+    height: var(--space-4);
+  }
+
+  .pd-skeleton__block {
+    border-radius: var(--radius-md);
+  }
+
+  .pd-skeleton--card .pd-skeleton__block {
+    height: var(--ad-billboard-h);
+  }
+
+  /* Mesma proporção 16:9 que `PhotoFrame` reserva, para não haver deslocamento na troca. */
+  .pd-skeleton--media .pd-skeleton__block {
+    aspect-ratio: 16 / 9;
+  }
+
+  @keyframes pd-skeleton-pulse {
+    from {
+      opacity: 1;
+    }
+
+    to {
+      opacity: 0.45;
+    }
+  }
+</style>

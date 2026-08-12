@@ -1,0 +1,42 @@
+---
+import { analyticsMetrics } from "@parnaibadigital/api-client/mock/data/index";
+import { SectionHeading } from "@parnaibadigital/ui";
+
+import PanelLayout from "../layouts/PanelLayout.astro";
+
+/**
+ * T103 — Analytics.
+ *
+ * Nenhuma integração existe (FR-038): os números são demonstrativos e chegam formatados.
+ * A tela diz isso na cara, em vez de deixar parecer que há telemetria real ligada — um
+ * painel que aparenta dados vivos e não os tem é pior que um painel vazio.
+ */
+---
+
+<PanelLayout
+  title="Analytics"
+  active="/analytics"
+  lede="Audiência, newsletter e receita. Números demonstrativos: nenhuma ferramenta de medição está conectada nesta fase."
+>
+  <section class="pd-panel__section" aria-label="Métricas">
+    <SectionHeading level="h2">Últimos 30 dias</SectionHeading>
+    <ul class="pd-metrics">
+      {
+        analyticsMetrics.map((metric) => (
+          <li class="pd-metric">
+            <span class="pd-metric__label">{metric.label}</span>
+            <span class="pd-metric__value">{metric.value}</span>
+            <span class="pd-metric__delta">
+              {metric.delta} · {metric.period}
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <p class="pd-panel__note">
+    A coleta de Core Web Vitals de campo (RUM) e os logs estruturados entram com o primeiro deploy —
+    pendência registrada no Constitution Check do plano (Princípio X).
+  </p>
+</PanelLayout>

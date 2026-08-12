@@ -1,0 +1,144 @@
+name: verify
+
+# Os 8 portões de qualidade da Constituição, na ordem do `pnpm verify` de quickstart.md.
+# Nenhum é dispensável pelo próprio autor: por isso rodam aqui, e não só na máquina de quem
+# escreveu. A ordem não é estética — vai do mais barato ao mais caro, para que um literal
+# de cor esquecido reprove em segundos em vez de depois de um build completo e do Lighthouse.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Portões de frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Node 24
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      # ——— Portão 1: um linter por linguagem (D-18) ———
+      - name: Lint
+        run: pnpm lint
+
+      # ——— Portão 2: tipos ———
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # ——— Portão 3: zero literal visual (FR-004, Princípio VI) ———
+      - name: Verificar tokens
+        run: pnpm check:tokens
+
+      # ——— Portão 4: Design System byte-idêntico (SC-017, cenário V13) ———
+      - name: Verificar integridade do Design System
+        run: pnpm check:ds-integrity
+
+      # ——— Portão 5: dados demonstrativos batem com o contrato (cenário V11) ———
+      - name: Validar dados demonstrativos
+        run: pnpm validate:mocks
+
+      # ——— Portão 6: testes de unidade e de contrato ———
+      - name: Testes
+        run: pnpm test
+
+      - name: Build estático
+        run: pnpm build
+
+      # ——— Portão 7: SEO declarado por superfície (SC-008, Princípio II) ———
+      - name: Asserções de SEO sobre o dist/
+        run: pnpm test:seo
+
+      - name: Instalar navegadores do Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      # ——— Portão 8: acessibilidade e comportamento, nos dois temas e sem JavaScript ———
+      - name: Acessibilidade (axe-core, 2 temas)
+        run: pnpm test:a11y
+
+      - name: End-to-end (360px, 1280px e sem JavaScript)
+        run: pnpm test:e2e
+
+      - name: Guardar relatório do Playwright
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  performance:
+    name: Orçamentos de performance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Separado do job anterior porque mede tempo: rodar junto com os testes disputaria CPU
+    # e produziria número de LCP instável — um portão que oscila deixa de ser portão.
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # Lighthouse ≥ 95 nas 4 categorias · LCP < 2,0s · CLS < 0,05 · INP < 200ms (SC-005)
+      # e ≤ 50 KB de JS comprimido por página (SC-006).
+      - name: Lighthouse CI
+        run: pnpm test:perf
+
+  backend:
+    name: Portões de backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend/api
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          tools: composer:v2
+
+      # Nenhuma migração roda e nenhum serviço é provisionado (FR-038, D-23):
+      # esta fase não tem banco, fila nem motor de busca.
+      - name: Instalar dependências
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Testes (Pest)
+        run: composer test
+
+      - name: Análise estática (PHPStan nível 8)
+        run: composer analyse
+
+      # Princípio VIII: acesso ao namespace interno de outro módulo é violação, e sem
+      # verificação automatizada isso é só uma frase de documento (D-16).
+      - name: Fronteiras de módulo (Deptrac)
+        run: composer deptrac

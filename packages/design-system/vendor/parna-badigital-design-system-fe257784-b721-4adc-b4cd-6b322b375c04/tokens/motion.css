@@ -1,0 +1,14 @@
+/* Notícia é velocidade: transições curtas, sem bounce, sem parallax.
+   Only two durations in practice — 120ms for pressed/hover, 200ms for reveal. */
+:root {
+  --dur-instant: 90ms; /* @kind other */
+  --dur-fast: 120ms; /* @kind other */
+  --dur-base: 200ms; /* @kind other */
+  --dur-slow: 320ms; /* @kind other */
+  --ease-out: cubic-bezier(0.22, 0.8, 0.36, 1); /* @kind other */
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+  --transition-interactive: background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  --press-scale: 0.985; /* @kind other */
+}

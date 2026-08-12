@@ -1,0 +1,138 @@
+---
+import Icon from "./Icon.astro";
+
+/**
+ * Tag de bairro — o motivo geolocalizado é a assinatura visual do produto, e por isso
+ * `pin` vem ligado por padrão no tom `bairro`.
+ *
+ * Com `href` vira `<a>`: as tags da barra de bairros são navegação real para
+ * `/{municipio}/{bairro}`, não filtro por JavaScript (Princípio XI, SC-010).
+ */
+interface Props {
+  tone?: "bairro" | "hot" | "neutral" | "onDark" | undefined;
+  size?: "sm" | "md" | undefined;
+  href?: string | undefined;
+  pin?: boolean | undefined;
+  count?: number | undefined;
+  active?: boolean | undefined;
+  class?: string | undefined;
+  /**
+   * O que sobra vai para o elemento renderizado. Sem isso, um `data-*` passado pela tela era
+   * **silenciosamente descartado** — e a falha é do pior tipo: a marcação some, a página
+   * continua correta aos olhos, e o teste que dependia do marcador só descobre o problema
+   * quando alguém liga o navegador.
+   */
+  [key: `data-${string}`]: string | boolean | undefined;
+}
+
+const {
+  tone = "bairro",
+  size = "md",
+  href,
+  pin = tone === "bairro",
+  count,
+  active = false,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const Tag = href === undefined ? "span" : "a";
+---
+
+<Tag
+  class:list={[
+    "pd-tag",
+    `pd-tag--${tone}`,
+    `pd-tag--${size}`,
+    active && "pd-tag--active",
+    className,
+  ]}
+  href={href}
+  aria-current={href !== undefined && active ? "page" : undefined}
+  {...rest}
+>
+  {pin && <Icon name="map-pin" size="xs" />}
+  <slot />
+  {count !== undefined && <span class="pd-tag__count">{count}</span>}
+</Tag>
+
+<style>
+  .pd-tag {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    padding: var(--space-2) var(--space-4);
+    /* Pill é o formato do DS para tag de bairro e chip de clima. */
+    border-radius: var(--radius-pill);
+    font: var(--type-ui-sm);
+    text-decoration: none;
+    transition: var(--transition-interactive);
+  }
+
+  .pd-tag--sm {
+    padding: var(--space-1) var(--space-3);
+    font: var(--type-kicker);
+  }
+
+  .pd-tag__count {
+    color: inherit;
+    font: var(--type-meta);
+
+    /* SEM `opacity`. O protótipo apaga a contagem a 0.7, mas ali a pílula parte de
+       `--pd-blue-800`; aqui a cor vem de `--text-brand` (= `--pd-blue-700`), um degrau mais
+       claro, e qualquer transparência derruba o contraste abaixo de 4,5:1 — 4,01:1 a 0.7 e
+       ainda 4,2:1 a 0.8 sobre a pílula em hover, 3,58:1 no tema escuro. Não é um valor a
+       calibrar: a transparência multiplica o contraste em toda combinação de fundo, então
+       cada tema e cada estado precisaria do seu, e o próximo fundo quebraria de novo.
+       A hierarquia entre rótulo e contagem fica por conta do tamanho (`--type-meta`), que é
+       critério de tipografia e não de cor. Mesmo raciocínio das duas correções de
+       `dark.css`: fidelidade ao protótipo não vale reprovar acessibilidade
+       (Princípio III, SC-004). */
+  }
+
+  .pd-tag--bairro {
+    background: var(--surface-brand-soft);
+    color: var(--text-brand);
+  }
+
+  /* Inversão total no hover — é o comportamento que o DS define para tag. */
+  a.pd-tag--bairro:hover {
+    background: var(--surface-brand);
+    color: var(--text-inverse);
+  }
+
+  .pd-tag--hot {
+    background: var(--surface-hot-soft);
+    color: var(--text-hot);
+  }
+  a.pd-tag--hot:hover {
+    background: var(--surface-hot);
+    color: var(--pd-ink-950);
+  }
+
+  .pd-tag--neutral {
+    background: var(--pd-ink-100);
+    color: var(--text-muted);
+  }
+  a.pd-tag--neutral:hover {
+    background: var(--pd-ink-200);
+    color: var(--text-strong);
+  }
+
+  .pd-tag--onDark {
+    background: rgb(
+      255 255 255 / 12%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- transparência sobre o azul do chrome, declarada no readme do DS */
+    color: var(--text-inverse);
+  }
+
+  .pd-tag--active {
+    background: var(--surface-brand);
+    color: var(--text-inverse);
+  }
+
+  a.pd-tag:focus-visible {
+    outline: var(--border-thick) solid var(--pd-blue-600);
+    outline-offset: var(--space-1);
+  }
+</style>

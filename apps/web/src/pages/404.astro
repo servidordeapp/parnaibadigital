@@ -1,0 +1,120 @@
+---
+import { MUNICIPALITIES } from "@parnaibadigital/api-client";
+import { AdSlot, Badge, Button, Tag } from "@parnaibadigital/ui";
+import { neighborhoods } from "@parnaibadigital/api-client/mock/data/index";
+
+import PortalLayout from "../layouts/PortalLayout.astro";
+import { neighborhoodHref } from "../lib/site";
+
+/**
+ * T078 — a tela de erro, com **status 404 real**.
+ *
+ * O status importa mais que a aparência. Uma página de erro bonita devolvida com 200 é um
+ * "soft 404": o rastreador registra que o endereço existe, indexa a tela de erro e continua
+ * voltando a ela. `output: 'static'` do Astro serve `404.html` com o status correto quando o
+ * host respeita a convenção — e `infrastructure/_headers` documenta essa exigência.
+ *
+ * A tela oferece saída: home, busca e os bairros. Um 404 sem navegação é um beco.
+ */
+const suggestions = neighborhoods.slice(0, 6).map((neighborhood) => {
+  const municipality = MUNICIPALITIES.find(
+    (entry) => entry.ibgeCode === neighborhood.municipalityIbgeCode,
+  );
+  return {
+    name: neighborhood.name,
+    href: municipality === undefined ? "/" : neighborhoodHref(municipality, neighborhood),
+  };
+});
+
+const meta = {
+  title: "Página não encontrada",
+  description: "O endereço pode ter mudado ou a matéria foi arquivada.",
+  path: "/404",
+  noindex: true,
+};
+---
+
+<PortalLayout meta={meta} schema={[]}>
+  <div class="pd-404">
+    <span class="pd-404__code" aria-hidden="true">404</span>
+
+    <Badge tone="hot" icon="map-pin">Você saiu da rota do Delta</Badge>
+
+    <h1 class="pd-404__title">Esta página não existe — mas a maré ainda está boa</h1>
+
+    <p class="pd-404__text">
+      O endereço pode ter mudado ou a matéria foi arquivada. Tente a busca, volte para a home ou
+      escolha um bairro para continuar lendo.
+    </p>
+
+    <div class="pd-404__actions">
+      <Button size="lg" href="/">Ir para a home</Button>
+      <Button size="lg" variant="secondary" iconLeft="search" href="/busca">Buscar notícia</Button>
+    </div>
+
+    <ul class="pd-404__tags">
+      {
+        suggestions.map((suggestion) => (
+          <li>
+            <Tag size="sm" href={suggestion.href}>
+              {suggestion.name}
+            </Tag>
+          </li>
+        ))
+      }
+    </ul>
+
+    <AdSlot format="leaderboard" position="Rodapé do erro 404" class="pd-404__ad" />
+  </div>
+</PortalLayout>
+
+<style>
+  .pd-404 {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    align-items: center;
+    /* largura da mensagem de erro, acima da medida editorial por não haver coluna lateral.
+       Pedido de token aberto ao projeto de design.
+       check-tokens-disable-next-line */
+    max-width: 720px;
+    margin: 0 auto;
+    padding: var(--space-11) var(--space-7) var(--space-12);
+    text-align: center;
+  }
+
+  .pd-404__code {
+    font: var(--weight-black) clamp(4.5rem, 14vw, 8.75rem) / 0.9 var(--font-display);
+    color: var(--pd-blue-100);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .pd-404__title {
+    margin: 0;
+    font: var(--type-headline-xl);
+    color: var(--text-strong);
+    text-wrap: balance;
+  }
+
+  .pd-404__text {
+    max-width: 52ch;
+    margin: 0;
+    font: var(--type-body);
+    color: var(--text-muted);
+  }
+
+  .pd-404__actions,
+  .pd-404__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-404__ad {
+    margin-top: var(--space-7);
+  }
+</style>

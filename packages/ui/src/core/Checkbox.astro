@@ -1,0 +1,74 @@
+---
+/**
+ * Caixa de seleção nativa. O `<input>` continua sendo o elemento real — nada de `div` com
+ * `role="checkbox"`: o nativo já traz teclado, estado anunciado e o comportamento que o
+ * formulário espera ao submeter sem JavaScript.
+ */
+interface Props {
+  label: string;
+  id: string;
+  name?: string | undefined;
+  value?: string | undefined;
+  checked?: boolean | undefined;
+  disabled?: boolean | undefined;
+  class?: string | undefined;
+}
+
+const {
+  label,
+  id,
+  name: fieldName,
+  value,
+  checked = false,
+  disabled = false,
+  class: className,
+} = Astro.props;
+---
+
+<div class:list={["pd-checkbox", className]}>
+  <input
+    class="pd-checkbox__input"
+    type="checkbox"
+    id={id}
+    name={fieldName ?? id}
+    value={value}
+    checked={checked}
+    disabled={disabled}
+  />
+  <label class="pd-checkbox__label" for={id}>{label}</label>
+</div>
+
+<style>
+  .pd-checkbox {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    /* O alvo de toque é a linha inteira, não os 16px da caixa. */
+    min-height: var(--tap-min);
+  }
+
+  .pd-checkbox__input {
+    width: var(--space-5);
+    height: var(--space-5);
+    flex: none;
+    accent-color: var(--pd-blue-600);
+    cursor: pointer;
+  }
+
+  .pd-checkbox__input:focus-visible {
+    outline: var(--border-thick) solid var(--pd-blue-600);
+    outline-offset: var(--space-1);
+  }
+
+  .pd-checkbox__label {
+    color: var(--text-body);
+    font: var(--type-body-sm);
+    cursor: pointer;
+  }
+
+  .pd-checkbox__input:disabled,
+  .pd-checkbox__input:disabled + .pd-checkbox__label {
+    color: var(--text-faint);
+    cursor: not-allowed;
+  }
+</style>

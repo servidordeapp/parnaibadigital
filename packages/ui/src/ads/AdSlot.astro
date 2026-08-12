@@ -1,0 +1,120 @@
+---
+/**
+ * FR-032 / FR-038 / Princípio I — o espaço de anúncio, reservado e rotulado.
+ *
+ * Três decisões que o DS trata como não negociáveis, e cada uma resolve um problema real:
+ *
+ * 1. **A altura vem de token `--ad-*`, sempre.** É ela que mantém o layout parado antes de
+ *    qualquer carga. Um slot que ganha altura depois empurra o texto que a pessoa está
+ *    lendo e estoura o orçamento de CLS (< 0,05).
+ * 2. **Cinza frio `--pd-ad-*`, nunca cor da marca.** Publicidade que parece conteúdo
+ *    editorial é problema de integridade (Princípio V), não de estética — e o cinza precisa
+ *    ser distinto do card **também no tema escuro**, que é onde a distinção costuma sumir.
+ * 3. **Nenhuma rede real.** Não há script de AdSense, nem `<iframe>`, nem requisição
+ *    (FR-038). O slot é uma caixa rotulada; a integração é de outra fase.
+ *
+ * `data-pd-ad-slot` é o alvo do teste de geometria (T051).
+ */
+interface Props {
+  format?:
+    "leaderboard" | "billboard" | "rectangle" | "halfpage" | "inread" | "mobileBanner" | undefined;
+  /** "Topo da home", "In-article · após o 2º parágrafo" — onde o slot vive na página. */
+  position?: string | undefined;
+  sticky?: boolean | undefined;
+  note?: string | undefined;
+  class?: string | undefined;
+}
+
+const { format = "leaderboard", position, sticky = false, note, class: className } = Astro.props;
+
+/** Rótulos do DS. A dimensão real fica no CSS, ligada aos tokens `--ad-*`. */
+const FORMAT_LABELS = {
+  leaderboard: "728×90 · Leaderboard",
+  billboard: "970×250 · Billboard",
+  rectangle: "336×280 · Retângulo grande",
+  halfpage: "300×600 · Meia página",
+  inread: "In-article responsivo",
+  mobileBanner: "320×100 · Banner mobile",
+} as const;
+---
+
+<aside
+  class:list={["pd-ad", `pd-ad--${format}`, sticky && "pd-ad--sticky", className]}
+  aria-label="Espaço publicitário"
+  data-pd-ad-slot={format}
+>
+  <span class="pd-ad__tag">[Anúncio AdSense]</span>
+  <span class="pd-ad__format">{FORMAT_LABELS[format]}</span>
+  {position !== undefined && <span class="pd-ad__position">{position}</span>}
+  {note !== undefined && <span class="pd-ad__note">{note}</span>}
+</aside>
+
+<style>
+  .pd-ad {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-inline: auto;
+    border: var(--border-hair) dashed var(--border-ad);
+    border-radius: var(--radius-sm);
+    background: var(--surface-ad);
+    /* Correção de contraste (Princípio III, SC-004): `--pd-ad-ink` sobre `--pd-ad-bg` rendia 2,91:1 — o rótulo do slot precisa ser
+       discreto, não ilegível. O cinza frio que distingue a zona do editorial continua vindo
+       do fundo e da borda (`--pd-ad-bg`/`--pd-ad-border`), inclusive no tema escuro.
+       Como nas demais correções desta fase, o conserto é apontar para outro degrau da rampa
+       que já existe — nenhuma cor nova entra no sistema. */
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .pd-ad__tag {
+    font: var(--type-kicker);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-ad__format,
+  .pd-ad__position,
+  .pd-ad__note {
+    font: var(--type-meta);
+  }
+
+  .pd-ad__note {
+    max-width: 36ch;
+  }
+
+  /* ——— Alturas reservadas: sempre token, jamais número solto ——— */
+
+  .pd-ad--leaderboard {
+    height: var(--ad-leaderboard-h);
+  }
+
+  .pd-ad--billboard {
+    height: var(--ad-billboard-h);
+  }
+
+  .pd-ad--rectangle {
+    max-width: var(--ad-rect-w);
+    height: var(--ad-rect-h);
+  }
+
+  .pd-ad--halfpage {
+    height: var(--ad-halfpage-h);
+  }
+
+  .pd-ad--inread {
+    height: var(--ad-inread-h);
+  }
+
+  .pd-ad--mobileBanner {
+    height: var(--ad-mobile-banner-h);
+  }
+
+  .pd-ad--sticky {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-7));
+  }
+</style>

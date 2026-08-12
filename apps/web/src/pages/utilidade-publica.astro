@@ -1,0 +1,132 @@
+---
+import type { UtilityGroup } from "@parnaibadigital/types";
+import { AdSlot, Badge, Breadcrumb, JobList, Tabs, WidgetCard } from "@parnaibadigital/ui";
+
+import PortalLayout from "../layouts/PortalLayout.astro";
+import { client, currencyFormat } from "../lib/site";
+import { breadcrumbList, collectionPage, type Crumb } from "../lib/seo/structured-data";
+
+/**
+ * T072 — utilidade pública, com aba por grupo e **estado vazio por grupo**.
+ *
+ * As abas são links (`?grupo=` seria inútil em saída estática, então cada grupo é uma
+ * âncora com todos os painéis presentes no HTML). Isso mantém o conteúdo dos quatro grupos
+ * indexável e legível sem JavaScript — a alternativa, carregar o grupo ao clicar, deixaria
+ * três quartos desta página invisíveis para a busca.
+ *
+ * O estado vazio é **por grupo**, e não da página: "nenhum edital hoje" é informação; uma
+ * página inteira vazia porque um grupo secou seria defeito.
+ */
+const GROUPS: { key: UtilityGroup; label: string }[] = [
+  { key: "concursos", label: "Concursos" },
+  { key: "empregos", label: "Empregos" },
+  { key: "licitacoes", label: "Licitações" },
+  { key: "editais", label: "Editais" },
+];
+
+const byGroup = await Promise.all(
+  GROUPS.map(async (group) => ({ ...group, items: await client.utilities.list(group.key) })),
+);
+
+const jobs = byGroup.find((group) => group.key === "empregos")?.items ?? [];
+
+const path = "/utilidade-publica";
+const crumbs: Crumb[] = [
+  { name: "Home", path: "/" },
+  { name: "Utilidade pública", path },
+];
+
+const description =
+  "Concursos, empregos, licitações e editais do litoral do Piauí. Atualizado a cada 30 minutos, com revisão humana antes da publicação.";
+---
+
+<PortalLayout
+  meta={{ title: "Utilidade pública", description, path }}
+  schema={[collectionPage("Utilidade pública", description, path), breadcrumbList(crumbs)]}
+  activeSection="/utilidade-publica"
+>
+  <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+  <header class="pd-listing__header">
+    <span class="pd-listing__kicker pd-listing__kicker--utility">Serviço ao morador</span>
+    <h1 class="pd-listing__title">Utilidade pública</h1>
+    <p class="pd-listing__lede">{description}</p>
+  </header>
+
+  <Tabs
+    tabs={byGroup.map((group) => ({
+      label: group.label,
+      href: `#${group.key}`,
+      count: group.items.length,
+    }))}
+    active="#concursos"
+    label="Grupos de utilidade pública"
+  />
+
+  <div class="pd-listing__grid">
+    <div>
+      {
+        byGroup.map((group) => (
+          <section class="pd-utility__group" id={group.key} aria-label={group.label}>
+            <h2 class="pd-utility__title">{group.label}</h2>
+
+            {group.items.length === 0 ? (
+              <div class="pd-empty">
+                <h3 class="pd-empty__title">Nada aberto em {group.label.toLowerCase()} hoje</h3>
+                <p class="pd-empty__text">
+                  A varredura roda a cada 30 minutos nos diários oficiais e nos portais dos órgãos.
+                  Assim que houver publicação neste grupo, ela aparece aqui.
+                </p>
+              </div>
+            ) : (
+              <ul class="pd-list-reset">
+                {group.items.map((item) => (
+                  <li class="pd-item">
+                    <div class="pd-item__head">
+                      <Badge tone="utility">{item.statusBadge}</Badge>
+                      <span class="pd-item__meta">{item.agency}</span>
+                    </div>
+                    <h3 class="pd-item__title">{item.title}</h3>
+                    {item.detail !== undefined && <p class="pd-item__text">{item.detail}</p>}
+                    {item.amount !== undefined && (
+                      <span class="pd-item__value">{currencyFormat.format(item.amount)}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))
+      }
+    </div>
+
+    <aside class="pd-listing__side" aria-label="Mais serviços">
+      <WidgetCard title="Telefones de emergência" icon="phone">
+        <ul class="pd-list-reset">
+          <li class="pd-item__meta">SAMU · 192</li>
+          <li class="pd-item__meta">Bombeiros · 193</li>
+          <li class="pd-item__meta">Defesa Civil · 199</li>
+          <li class="pd-item__meta">Polícia Militar · 190</li>
+        </ul>
+      </WidgetCard>
+
+      <JobList items={jobs.slice(0, 3)} totalLabel={`${String(jobs.length)} vagas`} />
+
+      <AdSlot format="rectangle" position="Sidebar de utilidade pública" />
+    </aside>
+  </div>
+</PortalLayout>
+
+<style>
+  .pd-utility__group {
+    margin-bottom: var(--space-9);
+  }
+
+  .pd-utility__title {
+    margin: 0 0 var(--space-5);
+    padding-bottom: var(--space-3);
+    border-bottom: var(--border-accent) solid var(--pd-mar-500);
+    font: var(--type-headline-md);
+    color: var(--text-strong);
+  }
+</style>

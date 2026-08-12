@@ -1,0 +1,155 @@
+---
+import { MUNICIPALITIES } from "@parnaibadigital/api-client";
+import { CommandPalette, SiteFooter, SiteHeader } from "@parnaibadigital/ui";
+
+import StructuredData from "../components/StructuredData.astro";
+import { resolveMeta, type PageMeta } from "../lib/seo/meta";
+import type { JsonLd } from "../lib/seo/structured-data";
+import { client, HEADER_SECTIONS, municipalityHref, newsHref, SITE_TAGLINE } from "../lib/site";
+import BaseLayout from "./BaseLayout.astro";
+
+import "../styles/portal.css";
+
+/**
+ * Casca de toda superfície pública: cabeçalho, rodapé, SEO e índice de telas.
+ *
+ * `BaseLayout` continua responsável só pelo documento (idioma, tema, marcos de
+ * acessibilidade). Esta camada monta o **portal** — e a separação tem consequência prática:
+ * a galeria de componentes (`/componentes`) usa `BaseLayout` direto, sem chrome, e por isso
+ * não polui o inventário com cabeçalho e rodapé em cada card.
+ *
+ * Cabeçalho e rodapé são renderizados aqui, uma vez, em vez de página por página. Repetir
+ * em 14 telas garantiria que uma delas ficasse com uma seção a menos na navegação — e essa
+ * divergência não aparece em nenhum teste de conteúdo.
+ */
+interface Props {
+  meta: PageMeta;
+  /** Nós JSON-LD desta superfície, conforme `contracts/routes.md`. */
+  schema: readonly JsonLd[];
+  /** Seção ativa do cabeçalho, para o sublinhado cor-de-sol. */
+  activeSection?: string;
+  isHome?: boolean;
+}
+
+const { meta, schema, activeSection, isHome = false } = Astro.props;
+
+const resolved = resolveMeta(meta);
+
+const sections = HEADER_SECTIONS.map((section) => ({
+  ...section,
+  active: section.href === activeSection,
+}));
+
+const cities = MUNICIPALITIES.map((municipality) => ({
+  name: municipality.name,
+  href: municipalityHref(municipality),
+  count: municipality.newsCount === 0 ? undefined : municipality.newsCount,
+}));
+
+/* A faixa urgente vem do conteúdo, não de uma constante: se não houver matéria na editoria
+   `urgente`, a faixa simplesmente não existe — em vez de exibir um alarme permanente que
+   deixa de significar alguma coisa. */
+const urgentPage = await client.news.list({ categorySlug: "urgente", perPage: 1 });
+const urgentItem = urgentPage.data[0];
+const urgent =
+  urgentItem === undefined
+    ? undefined
+    : {
+        headline: urgentItem.headline,
+        href: newsHref(urgentItem.slug),
+        publishedAt: urgentItem.publishedAt,
+      };
+
+const categories = await client.categories.list();
+
+const footerColumns = [
+  {
+    title: "Editorias",
+    links: categories.slice(0, 6).map((category) => ({
+      label: category.name,
+      href: `/editoria/${category.slug}`,
+    })),
+  },
+  {
+    title: "Utilidade pública",
+    links: [
+      { label: "Concursos e empregos", href: "/utilidade-publica" },
+      { label: "Diário Oficial", href: "/diario-oficial" },
+      { label: "Eventos do fim de semana", href: "/eventos" },
+      { label: "Guia de empresas", href: "/empresas" },
+    ],
+  },
+  {
+    title: "Institucional",
+    links: [
+      { label: "Anuncie", href: "/anuncie" },
+      { label: "Newsletter", href: "/newsletter" },
+      { label: "Buscar", href: "/busca" },
+      { label: "Inventário de componentes", href: "/componentes" },
+    ],
+  },
+];
+
+/** Destinos do `Ctrl/Cmd+K`. Municípios vêm do registro — nunca escritos à mão (SC-010). */
+const paletteDestinations = [
+  { label: "Home", href: "/", group: "Portal" },
+  { label: "Buscar", href: "/busca", group: "Portal" },
+  { label: "Newsletter", href: "/newsletter", group: "Portal" },
+  { label: "Anuncie", href: "/anuncie", group: "Portal" },
+  ...HEADER_SECTIONS.map((section) => ({ ...section, group: "Serviços" })),
+  ...MUNICIPALITIES.map((municipality) => ({
+    label: municipality.name,
+    href: municipalityHref(municipality),
+    group: "Cidades",
+  })),
+];
+---
+
+{
+  /* `noindex` NÃO é repassado ao `BaseLayout` de propósito: quem passa por aqui recebe a
+   diretiva completa de `meta.ts` logo abaixo — `index,follow,max-image-preview:large` ou
+   `noindex,follow`. Repassar produziria duas tags `robots` na mesma `<head>`, e duas
+   diretivas conflitantes é pior que nenhuma, porque o rastreador escolhe por conta. O
+   `noindex` do `BaseLayout` serve a quem o usa direto, sem esta camada — hoje, a galeria
+   de componentes. */
+}
+<BaseLayout title={resolved.fullTitle} description={resolved.description}>
+  <Fragment slot="head">
+    <link rel="canonical" href={resolved.canonical} />
+    <meta name="robots" content={resolved.robots} />
+
+    {
+      Object.entries(resolved.openGraph).map(([property, content]) => (
+        <meta property={property} content={content} />
+      ))
+    }
+    {
+      Object.entries(resolved.twitter).map(([name, content]) => (
+        <meta name={name} content={content} />
+      ))
+    }
+
+    <link rel="alternate" type="application/rss+xml" title={SITE_TAGLINE} href="/rss/urgente.xml" />
+
+    <StructuredData nodes={schema} />
+  </Fragment>
+
+  <SiteHeader slot="header" sections={sections} cities={cities} urgent={urgent} isHome={isHome} />
+
+  <div class="pd-page">
+    <slot />
+  </div>
+
+  <Fragment slot="footer">
+    <SiteFooter columns={footerColumns} />
+    <CommandPalette destinations={paletteDestinations} />
+  </Fragment>
+</BaseLayout>
+
+<style>
+  .pd-page {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: var(--space-7) var(--container-gutter) 0;
+  }
+</style>

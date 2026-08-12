@@ -1,0 +1,77 @@
+---
+import { DataTable, SectionHeading, Tabs } from "@parnaibadigital/ui";
+import { getDataClient } from "@parnaibadigital/api-client";
+
+import PanelLayout from "../../layouts/PanelLayout.astro";
+
+/**
+ * T098 — listagem de notícias, com filtros e badges de contagem.
+ *
+ * Os filtros são abas com endereço próprio (`#todas`, `#urgente`…) e as contagens saem dos
+ * dados, nunca de constante: um número escrito à mão diverge do acervo no primeiro artigo
+ * publicado e passa a mentir sem que nada acuse.
+ */
+const client = getDataClient();
+const result = await client.news.list({ perPage: 50 });
+const categories = await client.categories.list();
+
+const counts = categories.map((category) => ({
+  category,
+  total: result.data.filter((article) => article.categorySlug === category.slug).length,
+}));
+
+const dateFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
+---
+
+<PanelLayout
+  title="Notícias"
+  active="/noticias"
+  lede="Todo o acervo publicado, com editoria, autor e leituras. A edição não persiste nesta fase."
+>
+  <Tabs
+    tabs={[
+      { label: "Todas", href: "#todas", count: result.data.length },
+      ...counts
+        .filter((entry) => entry.total > 0)
+        .map((entry) => ({
+          label: entry.category.name,
+          href: `#${entry.category.slug}`,
+          count: entry.total,
+        })),
+    ]}
+    active="#todas"
+    label="Filtrar notícias por editoria"
+  />
+
+  <section class="pd-panel__section" id="todas" aria-label="Todas as notícias">
+    <SectionHeading level="h2">Acervo</SectionHeading>
+    <DataTable
+      caption="Notícias publicadas"
+      columns={[
+        { key: "headline", label: "Manchete", sortable: true },
+        { key: "category", label: "Editoria", sortable: true },
+        { key: "author", label: "Autor" },
+        { key: "published", label: "Publicada em", sortable: true },
+        { key: "views", label: "Leituras", numeric: true, sortable: true },
+      ]}
+      hrefForSort={(key: string) => `/noticias?ordem=${key}`}
+      rows={result.data.map((article) => ({
+        id: article.id,
+        href: `/noticias/${article.id}/editar`,
+        badge:
+          article.curation.kind === "curated"
+            ? { label: "Curada", tone: "brand" as const }
+            : { label: "Própria", tone: "soft" as const },
+        cells: {
+          headline: article.headline,
+          category: categories.find((entry) => entry.slug === article.categorySlug)?.name ?? "",
+          author: article.authorSlug,
+          published: dateFormat.format(new Date(article.publishedAt)),
+          views: String(article.viewCount ?? 0),
+        },
+      }))}
+      emptyTitle="Nenhuma matéria no acervo"
+      emptyText="Assim que a curadoria publicar a primeira matéria, ela aparece aqui."
+    />
+  </section>
+</PanelLayout>

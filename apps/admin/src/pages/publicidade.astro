@@ -1,0 +1,106 @@
+---
+import { DataTable, SectionHeading } from "@parnaibadigital/ui";
+
+import PanelLayout from "../layouts/PanelLayout.astro";
+
+/**
+ * T102 — inventário de publicidade, **sem rede real** (FR-038).
+ *
+ * Os formatos listados são os mesmos tokens `--ad-*` que o portal reserva. Isso não é
+ * repetição: é o que impede o comercial de vender um formato que o layout não reserva — o
+ * descompasso clássico entre o que se vende e o que cabe na página.
+ */
+const SLOTS = [
+  { label: "Topo · leaderboard", size: "728×90", token: "--ad-leaderboard-h", fill: "94%" },
+  {
+    label: "In-feed · após o 4º card",
+    // texto exibido na tabela de inventário, não CSS: descreve ao leitor a altura do
+    // formato. O valor que governa o layout vem de `token`, logo abaixo.
+    // check-tokens-disable-next-line
+    size: "responsivo 250px",
+    token: "--ad-inread-h",
+    fill: "91%",
+  },
+  { label: "Sidebar · retângulo", size: "336×280", token: "--ad-rect-h", fill: "88%" },
+  { label: "Sidebar · meia página", size: "300×600", token: "--ad-halfpage-h", fill: "82%" },
+  { label: "Banner mobile", size: "320×100", token: "--ad-mobile-banner-h", fill: "76%" },
+];
+
+const CAMPAIGNS = [
+  {
+    name: "Restaurante Delta Mar",
+    period: "1 a 31 de agosto",
+    slot: "Billboard topo",
+    revenue: "R$ 3.200",
+  },
+  {
+    name: "Clínica Vida Parnaíba",
+    period: "1 a 31 de agosto",
+    slot: "Sidebar 336×280",
+    revenue: "R$ 2.100",
+  },
+  {
+    name: "Pousada Porto das Barcas",
+    period: "4 a 18 de agosto",
+    slot: "In-feed",
+    revenue: "R$ 1.450",
+  },
+  {
+    name: "Auto Center São José",
+    period: "1 a 15 de agosto",
+    slot: "Sidebar sticky",
+    revenue: "R$ 980",
+  },
+  {
+    name: "Mercado Boa Praça",
+    period: "5 a 25 de agosto",
+    slot: "Mobile banner",
+    revenue: "R$ 760",
+  },
+  { name: "Ótica Visão Litoral", period: "1 a 31 de agosto", slot: "Rodapé", revenue: "R$ 520" },
+];
+---
+
+<PanelLayout
+  title="Publicidade"
+  active="/publicidade"
+  lede="Inventário de posições e campanhas locais. Nenhuma rede de anúncios está integrada nesta fase."
+>
+  <section class="pd-panel__section" aria-label="Posições disponíveis">
+    <SectionHeading level="h2">Posições do portal</SectionHeading>
+    <DataTable
+      caption="Posições reservadas por token"
+      columns={[
+        { key: "label", label: "Posição" },
+        { key: "size", label: "Dimensão" },
+        { key: "token", label: "Token de altura" },
+        { key: "fill", label: "Preenchimento", numeric: true },
+      ]}
+      rows={SLOTS.map((slot) => ({
+        id: slot.token,
+        cells: { label: slot.label, size: slot.size, token: slot.token, fill: slot.fill },
+      }))}
+    />
+    <p class="pd-panel__note">
+      A altura de cada posição vem de token, e é ela que mantém o layout parado antes de qualquer
+      carga (FR-032, Princípio I).
+    </p>
+  </section>
+
+  <section class="pd-panel__section" aria-label="Campanhas ativas">
+    <SectionHeading level="h2" accent="blue">Campanhas locais</SectionHeading>
+    <DataTable
+      caption="Campanhas em veiculação"
+      columns={[
+        { key: "name", label: "Anunciante" },
+        { key: "period", label: "Período" },
+        { key: "slot", label: "Posição" },
+        { key: "revenue", label: "Receita", numeric: true },
+      ]}
+      rows={CAMPAIGNS.map((campaign) => ({
+        id: campaign.name,
+        cells: { ...campaign },
+      }))}
+    />
+  </section>
+</PanelLayout>

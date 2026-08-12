@@ -1,0 +1,360 @@
+/**
+ * D-07 / FR-009 / T018 — tema escuro.
+ *
+ * O Design System importado **não publica tema escuro**: `vendor/<ds>/tokens/colors.css` define
+ * uma paleta só. A paleta escura existe apenas dentro do protótipo aprovado
+ * (`vendor/prototype/ParnaibaDigital.dc.html`, linhas 24-40), que é a fonte de verdade visual
+ * (FR-002). Este arquivo é a extração dela — overlay ao lado do original, nunca edição dele.
+ *
+ * Condições da exceção registradas na Complexity Tracking do plano, e como cada uma fica:
+ *
+ *   1. "Nunca redefinir uma rampa `--pd-*`" — **não foi possível cumprir ao pé da letra.**
+ *      Os componentes do DS referenciam as rampas diretamente (47 ocorrências em
+ *      `_ds_bundle.js`; 24 em `packages/ui/src`), então um overlay só de alias deixaria
+ *      neutros quase brancos e azuis de texto escuros sobre a página escura. As 17 rampas
+ *      abaixo são re-apontadas exatamente como o protótipo as re-aponta, sem valor novo.
+ *      A intenção da regra — não redesenhar a marca — continua honrada: nenhuma cor é
+ *      inventada aqui. Registrado em `docs/decisions/0007-substituicoes-do-design-system.md` (T139).
+ *   2. Cada literal recebe `check-tokens-disable` na linha anterior, com justificativa
+ *      própria — é a única exceção ao Princípio VI em todo o repositório, confinada a este
+ *      arquivo e verificada por `scripts/check-tokens.ts`.
+ *   3. O cinza frio de anúncio (`--pd-ad-bg`, `--pd-ad-border`, `--pd-ad-ink`) continua
+ *      visualmente distinto do editorial também no escuro: fundo mais frio que
+ *      `--surface-card`, borda quase o dobro da editorial e rótulo apagado.
+ *   4. Contraste >= 4,5:1 em texto normal e >= 3:1 em indicador de foco. O protótipo falha
+ *      em dois pontos que ele mesmo nunca exercita (`--focus-ring`, `--text-urgent`); os
+ *      dois são corrigidos no último grupo, repontando alias para outro degrau da rampa,
+ *      que é exatamente o mecanismo que a regra 1 prescreve.
+ *
+ * Reversão prevista: devolver este bloco ao projeto de design por `DesignSync` (T148) e
+ * reimportar. Na reimportação o overlay some e o DS passa a publicar os dois temas.
+ *
+ * MANUTENÇÃO: os dois blocos abaixo são deliberadamente idênticos — um serve à escolha
+ * explícita, o outro à preferência do sistema. `tests/dark-parity.test.ts` reprova qualquer
+ * divergência entre eles, então edite sempre os dois.
+ */
+
+/* A escolha explícita do leitor vence sempre — é ela que `theme-init.ts` grava em
+   `data-theme` antes da primeira pintura, e é o que evita o flash de tema errado. */
+:root[data-theme="dark"] {
+  /* Rampas re-apontadas pelo escuro. O protótipo inverte estes degraus porque os
+     componentes do DS (47 referências em `_ds_bundle.js`) e os de `packages/ui` (24)
+     consomem a rampa direto, sem passar por alias — ver ADR 0007. */
+
+  /* check-tokens-disable — neutro mais claro do tema claro vira o fundo sutil do escuro. */
+  --pd-ink-50: #0a1b30;
+
+  /* check-tokens-disable — degrau de hairline e de fundo alternado de tabela. */
+  --pd-ink-100: #142744;
+
+  /* check-tokens-disable — degrau de borda padrão. */
+  --pd-ink-200: #1d3556;
+
+  /* check-tokens-disable — degrau de borda forte e de divisor. */
+  --pd-ink-300: #2b4670;
+
+  /* check-tokens-disable — azul mais claro vira o azul mais escuro, mantendo a ordem. */
+  --pd-blue-50: #0e2340;
+
+  /* check-tokens-disable — fundo suave de marca. */
+  --pd-blue-100: #16305a;
+
+  /* check-tokens-disable — degrau de realce de marca. */
+  --pd-blue-200: #22497f;
+
+  /* check-tokens-disable — azul de texto inverte para o topo da rampa. */
+  --pd-blue-700: #8fbcfb;
+
+  /* check-tokens-disable — azul profundo de cromo. */
+  --pd-blue-800: #0a2647;
+
+  /* check-tokens-disable — âmbar de fundo de contexto regional. */
+  --pd-sun-50: #2a1c0b;
+
+  /* check-tokens-disable — âmbar de fundo de destaque quente. */
+  --pd-sun-100: #3a2409;
+
+  /* check-tokens-disable — sol de texto inverte para o topo da rampa. */
+  --pd-sun-700: #ffb367;
+
+  /* check-tokens-disable — cinza frio do anúncio, distinto do card editorial (regra 3). */
+  --pd-ad-bg: #101a28;
+
+  /* check-tokens-disable — borda do anúncio mais forte que a editorial. */
+  --pd-ad-border: rgb(255 255 255 / 16%);
+
+  /* check-tokens-disable — rótulo do anúncio deliberadamente apagado. */
+  --pd-ad-ink: #7d8b9e;
+
+  /* check-tokens-disable — verde-mar de fundo dos widgets de utilidade pública. */
+  --pd-mar-100: #06272b;
+
+  /* check-tokens-disable — verde-mar de texto inverte para o topo da rampa. */
+  --pd-mar-700: #6fdbe2;
+
+  /* Texto */
+
+  /* check-tokens-disable — título e manchete. */
+  --text-strong: #f5f7fa;
+
+  /* check-tokens-disable — corpo de matéria. */
+  --text-body: #dfe6ee;
+
+  /* check-tokens-disable — metadado — 6,1:1 sobre --surface-page. */
+  --text-muted: #a9b6c7;
+
+  /* check-tokens-disable — rótulo auxiliar — 6,1:1 sobre --surface-page. */
+  --text-faint: #8896a8;
+
+  /* check-tokens-disable — link em repouso. */
+  --text-link: #7fb0fa;
+
+  /* check-tokens-disable — link sob o cursor. */
+  --text-link-hover: #a9cbfd;
+
+  /* check-tokens-disable — palavra de marca. */
+  --text-brand: #7fb0fa;
+
+  /* check-tokens-disable — chamada quente. */
+  --text-hot: #ffb367;
+
+  /* Superfícies */
+
+  /* check-tokens-disable — fundo da página. */
+  --surface-page: #061426;
+
+  /* check-tokens-disable — card editorial. */
+  --surface-card: #0c2039;
+
+  /* check-tokens-disable — faixa alternada e bloco secundário. */
+  --surface-subtle: #0a1b30;
+
+  /* check-tokens-disable — card sob o cursor. */
+  --surface-card-hover: #12294a;
+
+  /* check-tokens-disable — cabeçalho fixo. */
+  --surface-header: #041225;
+
+  /* check-tokens-disable — barra de data acima do cabeçalho. */
+  --surface-header-bar: #010c1a;
+
+  /* check-tokens-disable — rodapé. */
+  --surface-footer: #010c1a;
+
+  /* check-tokens-disable — caixa de contexto regional. */
+  --surface-context: #2a1c0b;
+
+  /* check-tokens-disable — widget de utilidade pública (tercária mar/Delta). */
+  --surface-utility: #06272b;
+
+  /* check-tokens-disable — moldura sem foto. */
+  --surface-photo-fallback: #143055;
+
+  /* check-tokens-disable — realce suave de marca. */
+  --surface-brand-soft: #16305a;
+
+  /* check-tokens-disable — realce suave quente. */
+  --surface-hot-soft: #3a2409;
+
+  /* Bordas. No escuro o protótipo troca neutro opaco por branco translúcido, para a
+     borda acompanhar a superfície sob ela em vez de brigar com o fundo. */
+
+  /* check-tokens-disable — hairline. */
+  --border-subtle: rgb(255 255 255 / 9%);
+
+  /* check-tokens-disable — borda de card e de campo. */
+  --border-default: rgb(255 255 255 / 15%);
+
+  /* check-tokens-disable — divisor e borda de ênfase. */
+  --border-strong: rgb(255 255 255 / 24%);
+
+  /* Elevação. Sombra quente não existe sobre fundo escuro: o protótipo troca o tingimento
+     por preto puro e aumenta a opacidade para a sombra continuar legível. */
+
+  /* check-tokens-disable — card em repouso. */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 50%);
+
+  /* check-tokens-disable — card sob o cursor. */
+  --shadow-2: 0 6px 18px rgb(0 0 0 / 55%);
+
+  /* check-tokens-disable — cromo fixo. */
+  --shadow-3: 0 6px 18px rgb(0 0 0 / 60%);
+
+  /* check-tokens-disable — sobreposição modal. */
+  --shadow-4: 0 18px 48px rgb(0 0 0 / 70%);
+
+  /* A11Y — as duas correções que o protótipo NÃO faz. Ambas repontam um alias para outro
+     degrau da rampa (regra 1 do D-07); nenhuma inventa cor. Ver ADR 0007. */
+
+  /* check-tokens-disable — o protótipo mantém --pd-blue-200, que no escuro vira #22497f e rende 2,05:1 sobre --surface-page — reprova WCAG 2.1 SC 1.4.11 (3:1). O degrau 700 do escuro (#8fbcfb) rende 9,47:1. */
+  --focus-ring: 0 0 0 3px var(--pd-blue-700);
+
+  /* check-tokens-disable — a rampa urgente não é invertida pelo protótipo, e --pd-urgent-600 (#c8241f) rende 3,28:1 sobre --surface-page — reprova SC 1.4.3 (4,5:1). O degrau 100 é o único da rampa que passa no escuro. */
+  --text-urgent: var(--pd-urgent-100);
+
+  color-scheme: dark;
+}
+
+/* Sem escolha explícita, segue a preferência do sistema. O guard
+   `:not([data-theme="light"])` existe para que quem escolheu claro num aparelho em modo
+   escuro continue no claro — sem ele, a media query venceria a escolha da pessoa. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Rampas re-apontadas pelo escuro. O protótipo inverte estes degraus porque os
+     componentes do DS (47 referências em `_ds_bundle.js`) e os de `packages/ui` (24)
+     consomem a rampa direto, sem passar por alias — ver ADR 0007. */
+
+    /* check-tokens-disable — neutro mais claro do tema claro vira o fundo sutil do escuro. */
+    --pd-ink-50: #0a1b30;
+
+    /* check-tokens-disable — degrau de hairline e de fundo alternado de tabela. */
+    --pd-ink-100: #142744;
+
+    /* check-tokens-disable — degrau de borda padrão. */
+    --pd-ink-200: #1d3556;
+
+    /* check-tokens-disable — degrau de borda forte e de divisor. */
+    --pd-ink-300: #2b4670;
+
+    /* check-tokens-disable — azul mais claro vira o azul mais escuro, mantendo a ordem. */
+    --pd-blue-50: #0e2340;
+
+    /* check-tokens-disable — fundo suave de marca. */
+    --pd-blue-100: #16305a;
+
+    /* check-tokens-disable — degrau de realce de marca. */
+    --pd-blue-200: #22497f;
+
+    /* check-tokens-disable — azul de texto inverte para o topo da rampa. */
+    --pd-blue-700: #8fbcfb;
+
+    /* check-tokens-disable — azul profundo de cromo. */
+    --pd-blue-800: #0a2647;
+
+    /* check-tokens-disable — âmbar de fundo de contexto regional. */
+    --pd-sun-50: #2a1c0b;
+
+    /* check-tokens-disable — âmbar de fundo de destaque quente. */
+    --pd-sun-100: #3a2409;
+
+    /* check-tokens-disable — sol de texto inverte para o topo da rampa. */
+    --pd-sun-700: #ffb367;
+
+    /* check-tokens-disable — cinza frio do anúncio, distinto do card editorial (regra 3). */
+    --pd-ad-bg: #101a28;
+
+    /* check-tokens-disable — borda do anúncio mais forte que a editorial. */
+    --pd-ad-border: rgb(255 255 255 / 16%);
+
+    /* check-tokens-disable — rótulo do anúncio deliberadamente apagado. */
+    --pd-ad-ink: #7d8b9e;
+
+    /* check-tokens-disable — verde-mar de fundo dos widgets de utilidade pública. */
+    --pd-mar-100: #06272b;
+
+    /* check-tokens-disable — verde-mar de texto inverte para o topo da rampa. */
+    --pd-mar-700: #6fdbe2;
+
+    /* Texto */
+
+    /* check-tokens-disable — título e manchete. */
+    --text-strong: #f5f7fa;
+
+    /* check-tokens-disable — corpo de matéria. */
+    --text-body: #dfe6ee;
+
+    /* check-tokens-disable — metadado — 6,1:1 sobre --surface-page. */
+    --text-muted: #a9b6c7;
+
+    /* check-tokens-disable — rótulo auxiliar — 6,1:1 sobre --surface-page. */
+    --text-faint: #8896a8;
+
+    /* check-tokens-disable — link em repouso. */
+    --text-link: #7fb0fa;
+
+    /* check-tokens-disable — link sob o cursor. */
+    --text-link-hover: #a9cbfd;
+
+    /* check-tokens-disable — palavra de marca. */
+    --text-brand: #7fb0fa;
+
+    /* check-tokens-disable — chamada quente. */
+    --text-hot: #ffb367;
+
+    /* Superfícies */
+
+    /* check-tokens-disable — fundo da página. */
+    --surface-page: #061426;
+
+    /* check-tokens-disable — card editorial. */
+    --surface-card: #0c2039;
+
+    /* check-tokens-disable — faixa alternada e bloco secundário. */
+    --surface-subtle: #0a1b30;
+
+    /* check-tokens-disable — card sob o cursor. */
+    --surface-card-hover: #12294a;
+
+    /* check-tokens-disable — cabeçalho fixo. */
+    --surface-header: #041225;
+
+    /* check-tokens-disable — barra de data acima do cabeçalho. */
+    --surface-header-bar: #010c1a;
+
+    /* check-tokens-disable — rodapé. */
+    --surface-footer: #010c1a;
+
+    /* check-tokens-disable — caixa de contexto regional. */
+    --surface-context: #2a1c0b;
+
+    /* check-tokens-disable — widget de utilidade pública (tercária mar/Delta). */
+    --surface-utility: #06272b;
+
+    /* check-tokens-disable — moldura sem foto. */
+    --surface-photo-fallback: #143055;
+
+    /* check-tokens-disable — realce suave de marca. */
+    --surface-brand-soft: #16305a;
+
+    /* check-tokens-disable — realce suave quente. */
+    --surface-hot-soft: #3a2409;
+
+    /* Bordas. No escuro o protótipo troca neutro opaco por branco translúcido, para a
+     borda acompanhar a superfície sob ela em vez de brigar com o fundo. */
+
+    /* check-tokens-disable — hairline. */
+    --border-subtle: rgb(255 255 255 / 9%);
+
+    /* check-tokens-disable — borda de card e de campo. */
+    --border-default: rgb(255 255 255 / 15%);
+
+    /* check-tokens-disable — divisor e borda de ênfase. */
+    --border-strong: rgb(255 255 255 / 24%);
+
+    /* Elevação. Sombra quente não existe sobre fundo escuro: o protótipo troca o tingimento
+     por preto puro e aumenta a opacidade para a sombra continuar legível. */
+
+    /* check-tokens-disable — card em repouso. */
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 50%);
+
+    /* check-tokens-disable — card sob o cursor. */
+    --shadow-2: 0 6px 18px rgb(0 0 0 / 55%);
+
+    /* check-tokens-disable — cromo fixo. */
+    --shadow-3: 0 6px 18px rgb(0 0 0 / 60%);
+
+    /* check-tokens-disable — sobreposição modal. */
+    --shadow-4: 0 18px 48px rgb(0 0 0 / 70%);
+
+    /* A11Y — as duas correções que o protótipo NÃO faz. Ambas repontam um alias para outro
+     degrau da rampa (regra 1 do D-07); nenhuma inventa cor. Ver ADR 0007. */
+
+    /* check-tokens-disable — o protótipo mantém --pd-blue-200, que no escuro vira #22497f e rende 2,05:1 sobre --surface-page — reprova WCAG 2.1 SC 1.4.11 (3:1). O degrau 700 do escuro (#8fbcfb) rende 9,47:1. */
+    --focus-ring: 0 0 0 3px var(--pd-blue-700);
+
+    /* check-tokens-disable — a rampa urgente não é invertida pelo protótipo, e --pd-urgent-600 (#c8241f) rende 3,28:1 sobre --surface-page — reprova SC 1.4.3 (4,5:1). O degrau 100 é o único da rampa que passa no escuro. */
+    --text-urgent: var(--pd-urgent-100);
+
+    color-scheme: dark;
+  }
+}
