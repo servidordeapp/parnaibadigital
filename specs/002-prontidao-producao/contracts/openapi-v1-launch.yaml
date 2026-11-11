@@ -1,0 +1,191 @@
+# Extensão ADITIVA de specs/001-fundacao-prototipo-monorepo/contracts/openapi-v1.yaml
+# (Princípio VII: mudança aditiva dentro de /api/v1; nenhum caminho existente é alterado.)
+#
+# Este arquivo é o ARTEFATO REVISADO (contrato antes de código). Na tarefa de implementação ele é
+# MESCLADO em openapi-v1.yaml e os tipos de packages/types são regenerados; este arquivo então
+# permanece como registro histórico da decisão, não como segunda fonte de verdade.
+#
+# Convenções:
+#   - Leitura pública: sem credencial, cacheável (ETag + Cache-Control).
+#   - Escrita pública: rate limit por IP; sem cookie; validação estrita.
+#   - /admin/*: auth:sanctum + 2FA + permissão. Verificado NO SERVIDOR (FR-008). Mesma origem do
+#     painel (cookie host-only, CSRF via /sanctum/csrf-cookie) — D2-07.
+#   - Erros: application/problem+json (RFC 9457) com `request_id` (correlação, D2-18).
+openapi: 3.1.0
+info:
+  title: ParnaíbaDigital API — extensão de lançamento
+  version: 1.0.0-launch
+paths:
+
+  # ── Operação ────────────────────────────────────────────────────────────────
+  /healthz:
+    get:
+      tags: [ops]
+      summary: Saúde (Postgres, Redis, RabbitMQ). Sem dado sensível. Usado por uptime monitor.
+      responses:
+        '200': { description: ok }
+        '503': { description: dependência indisponível }
+
+  # ── Leitura pública: o que faltava para FR-020 / FR-022 ──────────────────────
+  /redirects/resolve:
+    get:
+      tags: [news]
+      summary: Resolve endereço antigo -> canônico (301) ou informa despublicação (410).
+      parameters:
+        - { name: path, in: query, required: true, schema: { type: string, maxLength: 200 } }
+      responses:
+        '200': { description: sem redirecionamento aplicável }
+        '301': { description: redirecionamento permanente; Location = canônico }
+        '410': { description: matéria despublicada; sem substituto }
+
+  /ads/slots/{slot}:
+    get:
+      tags: [advertising]
+      summary: Campanha ativa para o espaço (rodízio ponderado). 204 = nenhuma -> bloco "Anuncie".
+      parameters:
+        - { name: slot, in: path, required: true, schema: { $ref: '#/components/schemas/AdSlot' } }
+      responses:
+        '200': { description: campanha, content: { application/json: { schema: { $ref: '#/components/schemas/AdCreative' } } } }
+        '204': { description: sem campanha ativa }
+
+  /ads/click/{id}:
+    get:
+      tags: [advertising]
+      summary: Conta o clique e redireciona 302 para a URL do anunciante. Não é endpoint JSON.
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '302': { description: redirect } , '404': { description: campanha inativa } }
+
+  # ── Escrita pública ─────────────────────────────────────────────────────────
+  /newsletter/subscriptions:
+    post:
+      tags: [newsletter]
+      summary: Inscreve (status pending) e envia e-mail de confirmação. Idempotente por e-mail.
+      description: Resposta idêntica para e-mail novo e já existente (não revela cadastro).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, consent]
+              additionalProperties: false
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                municipalityIbgeCode: { type: string, pattern: '^[0-9]{7}$' }
+                consent: { const: true, description: Consentimento EXPLÍCITO; false/ausente = 422 }
+      responses:
+        '202': { description: confirmação enviada }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+
+  /newsletter/confirm:
+    post:
+      tags: [newsletter]
+      summary: Confirma assinatura por token assinado e expirável; grava NewsletterConsent.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [token], properties: { token: { type: string } } } } } }
+      responses: { '204': { description: confirmada }, '410': { $ref: '#/components/responses/Problem' } }
+
+  /newsletter/unsubscribe:
+    post:
+      tags: [newsletter]
+      summary: Cancelamento em UM passo (RFC 8058 one-click). Também por GET assinado para o link do e-mail.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [token], properties: { token: { type: string } } } } } }
+      responses: { '204': { description: cancelada; consentimento revogado } }
+
+  /telemetry:
+    post:
+      tags: [analytics]
+      summary: sendBeacon único por página. Sem cookie, sem identificador, sem IP gravado (D2-19).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              additionalProperties: false
+              properties:
+                path: { type: string, description: 'Template de rota, ex. /noticia/[slug]; nunca URL com dado.', maxLength: 80 }
+                lcp: { type: number, minimum: 0 }
+                cls: { type: number, minimum: 0 }
+                inp: { type: number, minimum: 0 }
+                ttfb: { type: number, minimum: 0 }
+                adImpressions: { type: array, maxItems: 8, items: { type: string } }
+      responses: { '204': { description: aceito (ou descartado como bot) }, '429': { $ref: '#/components/responses/Problem' } }
+
+  # ── Administração (permissão -> ver data-model.md) ──────────────────────────
+  /admin/session:
+    get:
+      tags: [admin]
+      summary: Sessão corrente. Chamado pelo middleware do painel antes de renderizar QUALQUER página.
+      responses:
+        '200': { description: conta, papéis, permissões, twoFactorConfirmed }
+        '401': { $ref: '#/components/responses/Problem' }
+        '423': { description: papel administrativo sem 2FA confirmado — só enroll-2fa/logout }
+
+  /admin/news:
+    get:  { tags: [admin], summary: Lista (todos os estados) com filtros; permissão news.write, responses: { '200': { description: página } } }
+    post: { tags: [admin], summary: Cria rascunho; permissão news.write, responses: { '201': { description: criada }, '422': { $ref: '#/components/responses/Problem' } } }
+  /admin/news/{id}:
+    get: { tags: [admin], summary: Matéria + ETag (= version), responses: { '200': { description: ok } } }
+    put:
+      tags: [admin]
+      summary: Edita. EXIGE If-Match com a versão; divergência -> 409 (D2-05).
+      parameters: [ { name: If-Match, in: header, required: true, schema: { type: string } } ]
+      responses: { '200': { description: ok }, '409': { $ref: '#/components/responses/Problem' }, '412': { $ref: '#/components/responses/Problem' }, '422': { $ref: '#/components/responses/Problem' } }
+  /admin/news/{id}/transitions/{transition}:
+    post:
+      tags: [admin]
+      summary: submit | request_changes | publish | unpublish | republish. Máquina de estados no DOMÍNIO.
+      description: |
+        `publish` exige permissão news.publish E aprovador distinto do autor da versão (FR-003).
+        Transição ilegal -> 409 com a transição permitida. Publicar sem município -> 422 (FR-019).
+      parameters: [ { name: transition, in: path, required: true, schema: { enum: [submit, request_changes, publish, unpublish, republish] } } ]
+      responses: { '200': { description: ok }, '403': { $ref: '#/components/responses/Problem' }, '409': { $ref: '#/components/responses/Problem' }, '422': { $ref: '#/components/responses/Problem' } }
+  /admin/news/{id}/slug:
+    put: { tags: [admin], summary: Altera endereço publicado; cria RedirectRule 301 na mesma transação (D2-06); permissão news.slug.change, responses: { '200': { description: ok } } }
+  /admin/news/{id}/versions:
+    get: { tags: [admin], summary: Histórico; ?compare=a..b devolve diferença, responses: { '200': { description: ok } } }
+  /admin/news/{id}/versions/{number}/restore:
+    post: { tags: [admin], summary: Cria NOVA versão a partir do snapshot, responses: { '200': { description: ok } } }
+
+  /admin/media:
+    post: { tags: [admin], summary: Upload (valida tipo por conteúdo, remove EXIF); derivadas assíncronas, responses: { '201': { description: criado }, '422': { $ref: '#/components/responses/Problem' } } }
+
+  /admin/ads/campaigns:
+    get:  { tags: [admin], summary: Lista; permissão ads.manage, responses: { '200': { description: ok } } }
+    post: { tags: [admin], summary: Cria; target_url https validada, responses: { '201': { description: criada } } }
+  /admin/ads/campaigns/{id}:
+    put: { tags: [admin], summary: Edita/pausa, responses: { '200': { description: ok } } }
+
+  /admin/users:
+    get:  { tags: [admin], summary: Contas e papéis; permissão users.manage, responses: { '200': { description: ok } } }
+    post: { tags: [admin], summary: Convida conta (sem senha em claro), responses: { '201': { description: criada } } }
+  /admin/users/{id}/role:
+    put: { tags: [admin], summary: Altera papel; AUDITADO, responses: { '200': { description: ok } } }
+  /admin/users/{id}/two-factor/reset:
+    post: { tags: [admin], summary: Redefine fator perdido por OUTRO admin; força novo cadastro; AUDITADO, responses: { '204': { description: ok } } }
+
+  /admin/analytics:
+    get: { tags: [admin], summary: daily_metrics medidos; vazio = estado vazio (FR-040), responses: { '200': { description: ok } } }
+  /admin/audit:
+    get: { tags: [admin], summary: Trilha imutável com filtros; permissão audit.view, responses: { '200': { description: ok } } }
+
+components:
+  schemas:
+    AdSlot: { type: string, description: 'Enum dos espaços já presentes nos layouts da 001 (preencher na implementação a partir de apps/web).' }
+    AdCreative:
+      type: object
+      required: [id, imageUrl, alt, width, height, label]
+      properties:
+        id: { type: string }
+        imageUrl: { type: string }
+        alt: { type: string, minLength: 1 }
+        width: { type: integer }
+        height: { type: integer }
+        label: { const: Publicidade }
+        clickUrl: { type: string, description: 'sempre /api/v1/ads/click/{id}' }
+  responses:
+    Problem:
+      description: application/problem+json (RFC 9457) com request_id
+      content: { application/problem+json: { schema: { type: object, required: [type, title, status, request_id] } } }
