@@ -1,0 +1,91 @@
+/**
+ * Padrões de layout compartilhados pelas superfícies do painel.
+ *
+ * Mesma razão de `apps/web/src/styles/portal.css`: estes seletores existiriam quase iguais
+ * em 11 telas, e "quase iguais" é como o painel passa a ter respiro diferente do portal sem
+ * que ninguém decida isso. Nenhum valor é novo — todos são tokens do DS.
+ */
+
+.pd-metrics {
+  display: grid;
+
+  /* Largura MÍNIMA de coluna de grade, não espaçamento. A escala do DS vai até `--space-12`
+     (80px) e não publica token de largura de card; os que existem (`--sidebar-width`,
+     `--content-measure`) descrevem outra coisa. O valor é o ponto em que o número da métrica
+     e o rótulo cabem lado a lado sem quebrar. Se o DS publicar um token de largura mínima de
+     card, esta linha passa a usá-lo. */
+  /* stylelint-disable-next-line scale-unlimited/declaration-strict-value -- check-tokens-disable */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-5);
+  margin: 0 0 var(--space-8);
+  padding: 0;
+  list-style: none;
+}
+
+.pd-metric {
+  padding: var(--space-5);
+  border: var(--border-hair) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-1);
+}
+
+.pd-metric__label {
+  display: block;
+  font: var(--type-meta);
+  color: var(--text-muted);
+}
+
+.pd-metric__value {
+  display: block;
+  margin: var(--space-3) 0 var(--space-2);
+  font: var(--weight-bold) var(--size-2xl) / 1 var(--font-display);
+  color: var(--text-strong);
+}
+
+.pd-metric__delta {
+  font: var(--type-data);
+
+  /* Alias, não rampa: `--pd-success-600` fixo rendia 2,98:1 no tema escuro, onde a superfície
+     do card fica azul-escura. `--text-success` acompanha o tema (design-system/theme/contrast.css). */
+  color: var(--text-success);
+}
+
+.pd-panel__section {
+  margin-bottom: var(--space-9);
+}
+
+.pd-panel__card {
+  padding: var(--space-6);
+  border: var(--border-hair) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-1);
+}
+
+.pd-panel__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+.pd-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-panel__note {
+  margin: var(--space-5) 0 0;
+  font: var(--type-meta);
+  color: var(--text-faint);
+}
+
+@media (width >= 900px) {
+  .pd-panel__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -1,0 +1,55 @@
+---
+import { users } from "@parnaibadigital/api-client/mock/data/index";
+import { DataTable, SectionHeading } from "@parnaibadigital/ui";
+
+import PanelLayout from "../layouts/PanelLayout.astro";
+
+/**
+ * T106 — Usuários, **sem autenticação e sem permissão efetiva** (FR-038).
+ *
+ * O papel é rótulo exibido, não decisão de acesso — e a tela precisa dizer isso. Uma tabela
+ * de papéis sem esse aviso comunica um controle de acesso que não existe, o que é pior que
+ * não ter a tela: alguém pode concluir que o painel está protegido.
+ */
+const ROLE_LABELS = {
+  admin: "Administração",
+  editor: "Edição",
+  redator: "Redação",
+  revisor: "Revisão",
+} as const;
+---
+
+<PanelLayout
+  title="Usuários"
+  active="/usuarios"
+  lede="A equipe editorial. Papel é rótulo exibido nesta fase, não decisão de acesso."
+>
+  <SectionHeading level="h2">Equipe</SectionHeading>
+
+  <DataTable
+    caption="Pessoas com acesso previsto ao painel"
+    columns={[
+      { key: "name", label: "Nome", sortable: true },
+      { key: "role", label: "Papel", sortable: true },
+      { key: "status", label: "Situação" },
+    ]}
+    hrefForSort={(key: string) => `/usuarios?ordem=${key}`}
+    rows={users.map((user) => ({
+      id: user.id,
+      badge:
+        user.status === "ativo"
+          ? { label: "Ativo", tone: "utility" as const }
+          : { label: "Inativo", tone: "neutral" as const },
+      cells: {
+        name: user.name,
+        role: ROLE_LABELS[user.role],
+        status: user.status === "ativo" ? "Ativo" : "Inativo",
+      },
+    }))}
+  />
+
+  <p class="pd-panel__note">
+    Não há autenticação, sessão nem permissão efetiva nesta fase. O acesso ao painel é bloqueado na
+    borda — ver `infrastructure/_headers` e o Princípio IV.
+  </p>
+</PanelLayout>

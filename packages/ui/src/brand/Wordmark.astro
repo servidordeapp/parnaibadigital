@@ -1,0 +1,94 @@
+---
+/**
+ * T038 / Assumption 9 — a marca é assinada em tipo vivo, não em arquivo.
+ *
+ * O `readme.md` do DS é explícito: "Não existe arquivo de logo. A marca é assinada em tipo
+ * (`Wordmark`). Nenhum logotipo foi desenhado ou reconstruído." Desenhar um SVG aqui seria
+ * inventar identidade visual — exatamente o que FR-002 proíbe. Quando o logo real existir,
+ * ele entra neste componente e nenhuma tela muda.
+ *
+ * O DS parametriza o tamanho em pixel (`size = 27`). Aqui ele vem do papel semântico
+ * `--type-wordmark`, que o próprio DS declara em `typography.css` justamente com o clamp
+ * 20→27px: o valor é o mesmo, mas passa a ser token, e o wordmark acompanha a escala de
+ * tipo em vez de precisar de um número em cada consumidor.
+ */
+interface Props {
+  /** Sobre o azul do chrome (header, rodapé) o tipo inverte. */
+  onDark?: boolean | undefined;
+  showTagline?: boolean | undefined;
+  /** Sem `href` o wordmark é só tipo — é o caso do rodapé e da tela de erro. */
+  href?: string | undefined;
+  /** No cabeçalho o wordmark é o `<h1>` da home; nas demais telas, não. */
+  as?: "span" | "h1" | undefined;
+  class?: string | undefined;
+}
+
+const { onDark = false, showTagline = false, href, as = "span", class: className } = Astro.props;
+
+const Root = href === undefined ? as : "a";
+---
+
+<Root
+  class:list={["pd-wordmark", onDark && "pd-wordmark--on-dark", className]}
+  href={href}
+  aria-label={href === undefined ? undefined : "ParnaíbaDigital — página inicial"}
+>
+  <span class="pd-wordmark__lockup">
+    <span class="pd-wordmark__city">Parnaíba</span><span class="pd-wordmark__product">Digital</span>
+    {/* O ponto cor-de-sol fecha a assinatura; é forma, não texto. */}
+    <span class="pd-wordmark__dot" aria-hidden="true"></span>
+  </span>
+  {showTagline && <span class="pd-wordmark__tagline">Notícia do seu bairro, primeiro</span>}
+</Root>
+
+<style>
+  .pd-wordmark {
+    display: inline-flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    text-decoration: none;
+  }
+
+  .pd-wordmark__lockup {
+    display: inline-flex;
+    align-items: baseline;
+    font: var(--type-wordmark);
+    /* O aperto do lockup é da marca, não da escala de tipo geral. */
+    letter-spacing: var(--tracking-tight);
+    color: var(--pd-blue-900);
+  }
+
+  .pd-wordmark__product {
+    color: var(--pd-sun-500);
+  }
+
+  /* Proporcional ao tipo (0.17em) para o ponto acompanhar o clamp do wordmark. */
+  .pd-wordmark__dot {
+    width: 0.17em;
+    height: 0.17em;
+    margin-left: 0.07em;
+    border-radius: var(--radius-pill);
+    background: var(--pd-sun-500);
+  }
+
+  .pd-wordmark__tagline {
+    font: var(--type-kicker);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .pd-wordmark--on-dark .pd-wordmark__lockup {
+    color: var(--text-inverse);
+  }
+
+  .pd-wordmark--on-dark .pd-wordmark__tagline {
+    color: var(--text-inverse-muted);
+  }
+
+  /* O sublinhado global de `a:hover` desfiguraria a assinatura. */
+  a.pd-wordmark:hover {
+    text-decoration: none;
+  }
+</style>

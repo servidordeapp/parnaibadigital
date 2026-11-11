@@ -1,0 +1,94 @@
+/**
+ * D-08 / FR-034 — substituição obrigatória de `vendor/tokens/fonts.css`.
+ *
+ * O DS carrega Archivo, Source Sans 3 e IBM Plex Mono por `@import` do Google Fonts. Isso
+ * põe um terceiro no caminho crítico de renderização: contraria o Princípio I (o @import
+ * encadeia duas idas à rede antes da primeira letra aparecer) e o Princípio XI (a página
+ * fica dependente de um host externo estar de pé). Aqui as mesmas três famílias entram
+ * auto-hospedadas via @fontsource, subsetadas em `latin` + `latin-ext` — que é o que o
+ * português precisa — e com `font-display: swap` (padrão do @fontsource).
+ *
+ * Este arquivo NÃO redesenha nada: redeclara exatamente os mesmos três nomes de token, com
+ * as mesmas três famílias e as mesmas pilhas de fallback do DS. Componente nenhum sabe da
+ * diferença.
+ */
+
+/* IBM Plex Mono — horários, kickers, rótulos de curadoria, widgets de dado.
+   Estático: só os três pesos que o DS declara (400/500/600). Este pacote **publica** CSS por
+   subconjunto, então o @import basta e não há `@font-face` escrita à mão. */
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+@import "@fontsource/ibm-plex-mono/latin-600.css";
+@import "@fontsource/ibm-plex-mono/latin-ext-400.css";
+@import "@fontsource/ibm-plex-mono/latin-ext-500.css";
+@import "@fontsource/ibm-plex-mono/latin-ext-600.css";
+
+/* Archivo e Source Sans 3 — faces variáveis, apenas os subconjuntos `latin` e `latin-ext`.
+ *
+ * As `@font-face` estão escritas aqui em vez de virem por `@import` do pacote, e o motivo é
+ * concreto: os pacotes `@fontsource-variable` **não publicam CSS por subconjunto** — só
+ * `wght.css`, que declara todos (vietnamita, cirílico, grego). Importá-lo traria seis faces
+ * onde o português usa duas, contrariando FR-034 e o Princípio I. Os blocos abaixo são
+ * cópia exata dos do pacote, restritos aos dois subconjuntos que este produto precisa.
+ * `font-display: swap` e o intervalo de peso vêm do próprio pacote, não são escolha nossa. */
+
+/* stylelint-disable scale-unlimited/declaration-strict-value -- dentro de @font-face estas
+   propriedades declaram a face, não consomem token; os valores são os do próprio pacote. */
+@font-face {
+  font-family: "Archivo Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("@fontsource-variable/archivo/files/archivo-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Archivo Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("@fontsource-variable/archivo/files/archivo-latin-ext-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Source Sans 3 Variable";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("@fontsource-variable/source-sans-3/files/source-sans-3-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Source Sans 3 Variable";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("@fontsource-variable/source-sans-3/files/source-sans-3-latin-ext-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+/* stylelint-enable scale-unlimited/declaration-strict-value */
+
+:root {
+  /* Mesmos nomes de token de `vendor/tokens/fonts.css`, mesmas famílias, mesmos fallbacks.
+     O sufixo "Variable" é como o @fontsource nomeia a face variável. */
+  --font-display: "Archivo Variable", "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Sans 3 Variable", "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+}

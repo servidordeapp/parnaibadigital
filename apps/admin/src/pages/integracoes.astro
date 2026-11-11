@@ -1,0 +1,51 @@
+---
+import { Badge, SectionHeading } from "@parnaibadigital/ui";
+
+import PanelLayout from "../layouts/PanelLayout.astro";
+
+/**
+ * T105 — Integrações: as fontes **listadas, nenhuma conectada** (FR-038).
+ *
+ * O estado de cada item é "não conectado", e está escrito assim. Um painel que mostra
+ * serviços em verde sem que nenhum esteja ligado ensina a equipe a não confiar no painel —
+ * e o custo disso aparece no dia em que um serviço realmente cair.
+ */
+const INTEGRATIONS = [
+  { name: "RSS · fontes locais", detail: "12 feeds de veículos do Piauí e do Ceará." },
+  { name: "Provedor de IA", detail: "Resumo, reescrita e classificação dos documentos." },
+  { name: "CDN e cache de imagens", detail: "Entrega estática e proteção de borda." },
+  { name: "Medição de audiência", detail: "Sessões, eventos e funil da newsletter." },
+  { name: "Rede de anúncios", detail: "Preenchimento automático dos slots do portal." },
+  { name: "Venda direta de publicidade", detail: "Reserva de posições locais." },
+  { name: "Envio de e-mail", detail: "Newsletter diária às 6h30." },
+  { name: "Webhooks", detail: "Disparo para WhatsApp e push do navegador." },
+  { name: "Motor de busca", detail: "Meilisearch, decidido em D-14 e ainda não provisionado." },
+];
+---
+
+<PanelLayout
+  title="Integrações"
+  active="/integracoes"
+  lede="As fontes e serviços previstos para o produto. Nenhum está conectado nesta fase."
+>
+  <SectionHeading level="h2">Serviços previstos</SectionHeading>
+
+  <ul class="pd-panel__list">
+    {
+      INTEGRATIONS.map((integration) => (
+        <li class="pd-panel__card">
+          <div class="pd-item__head">
+            <Badge tone="neutral">Não conectado</Badge>
+            <h3 class="pd-item__title">{integration.name}</h3>
+          </div>
+          <p class="pd-item__text">{integration.detail}</p>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="pd-panel__note">
+    A porta de extensão de ingestão (`Source`, `Connector`, `IngestionJob`) é declarada no backend
+    nesta fase, sem nenhum coletor implementado — ver `docs/ingestion.md`.
+  </p>
+</PanelLayout>

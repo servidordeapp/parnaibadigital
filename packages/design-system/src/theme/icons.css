@@ -1,0 +1,64 @@
+/**
+ * D-09 — substituição obrigatória do carregamento de ícones do DS.
+ *
+ * O `readme.md` do DS declara Lucide carregado do CDN `lucide-static@0.469.0` e aplicado
+ * como `mask-image` sobre `currentColor`. CDN no caminho crítico contraria o Princípio I e
+ * o XI (ícone que não chega vira botão sem rótulo visível). Aqui o glifo é inlinado em
+ * build pelo componente `Icon.astro`, que lê o SVG de `lucide-static` do disco e o escreve
+ * direto no HTML — zero rede, zero FOUC, e o traço continua herdando `currentColor`.
+ *
+ * Estas regras cobrem só o dimensionamento e a herança de cor. O vocabulário permitido —
+ * os ~20 glifos que o DS declara — vive em `src/icons/manifest.ts`, tipado, para que um
+ * nome fora da lista não compile.
+ */
+
+.pd-icon {
+  display: inline-block;
+  flex: none;
+  width: 1em;
+  height: 1em;
+
+  /* Herda a cor do texto — é o contrato do Icon no DS. */
+  color: currentcolor;
+  fill: none;
+  stroke: currentcolor;
+
+  /* Lucide desenha com traço de 2px em viewBox 24; `non-scaling-stroke` mantém o peso
+     óptico igual em 12px (linha mono) e em 22px (chrome do header). */
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Tamanhos do DS: 12–14px em linha mono/meta, 16–18px em UI, 20–22px no chrome. */
+.pd-icon--xs {
+  width: var(--size-2xs);
+  height: var(--size-2xs);
+}
+
+.pd-icon--sm {
+  width: var(--size-xs);
+  height: var(--size-xs);
+}
+
+.pd-icon--md {
+  width: var(--size-md);
+  height: var(--size-md);
+}
+
+.pd-icon--lg {
+  width: var(--size-lg);
+  height: var(--size-lg);
+}
+
+.pd-icon--xl {
+  width: var(--size-xl);
+  height: var(--size-xl);
+}
+
+/* Ícone puramente decorativo não é anunciado; quem carrega significado recebe <title>
+   pelo componente (Princípio III). */
+.pd-icon[aria-hidden="true"] {
+  pointer-events: none;
+}

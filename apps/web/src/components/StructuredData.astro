@@ -1,0 +1,18 @@
+---
+import { graph, type JsonLd } from "../lib/seo/structured-data";
+
+/**
+ * Emite o `@graph` da página como um único `<script type="application/ld+json">`.
+ *
+ * `set:html` com JSON já serializado, e não `JSON.stringify` inline no template: o Astro
+ * escaparia entidades HTML dentro do JSON, e um `&amp;` no meio de uma URL torna o bloco
+ * inválido — que o buscador descarta em silêncio, o pior modo de falha possível.
+ */
+interface Props {
+  nodes: readonly JsonLd[];
+}
+
+const { nodes } = Astro.props;
+---
+
+<script is:inline type="application/ld+json" set:html={graph(nodes)} />

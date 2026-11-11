@@ -1,0 +1,93 @@
+---
+import { getDataClient } from "@parnaibadigital/api-client";
+import type { GazetteStatus } from "@parnaibadigital/types";
+import { DataTable, SectionHeading, Tabs } from "@parnaibadigital/ui";
+
+import PanelLayout from "../layouts/PanelLayout.astro";
+
+/**
+ * T101 / Princípio V — a fila do Diário Oficial, com os quatro estados representados.
+ *
+ * A máquina de estados é `fila_ia → em_revisao → publicado` (e `arquivado` a partir de
+ * qualquer ponto). **Não existe aresta de `fila_ia` para `publicado`** — nem no tipo, nem
+ * aqui. A tela agrupa por estado justamente para tornar visível quando algo está preso na
+ * revisão, que é o ponto em que a automação para e uma pessoa precisa agir.
+ */
+const client = getDataClient();
+const documents = await client.gazette.list();
+
+const STATUS: { key: GazetteStatus; label: string; note: string }[] = [
+  {
+    key: "fila_ia",
+    label: "Fila de IA",
+    note: "Documento lido pela varredura, ainda sem resumo aprovado. Não pode ter matéria.",
+  },
+  {
+    key: "em_revisao",
+    label: "Em revisão",
+    note: "Resumo pronto, aguardando a leitura de um editor. É aqui que a automação para.",
+  },
+  {
+    key: "publicado",
+    label: "Publicado",
+    note: "Revisado por uma pessoa e no ar. Pode — mas não precisa — ter matéria associada.",
+  },
+  { key: "arquivado", label: "Arquivado", note: "Fora da fila, mantido para consulta." },
+];
+
+const grouped = STATUS.map((status) => ({
+  ...status,
+  items: documents.filter((document) => document.status === status.key),
+}));
+
+const dateFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
+---
+
+<PanelLayout
+  title="Diário Oficial"
+  active="/diario-oficial"
+  lede="A fila de documentos, agrupada por estado. Nenhum documento salta da fila de IA direto para publicado."
+>
+  <Tabs
+    tabs={grouped.map((group) => ({
+      label: group.label,
+      href: `#${group.key}`,
+      count: group.items.length,
+    }))}
+    active="#fila_ia"
+    label="Filtrar documentos por estado"
+  />
+
+  {
+    grouped.map((group) => (
+      <section class="pd-panel__section" id={group.key} aria-label={group.label}>
+        <SectionHeading level="h2">{group.label}</SectionHeading>
+        <p class="pd-panel__note">{group.note}</p>
+
+        <DataTable
+          caption={`Documentos em ${group.label.toLowerCase()}`}
+          columns={[
+            { key: "number", label: "Documento" },
+            { key: "agency", label: "Órgão" },
+            { key: "type", label: "Tipo" },
+            { key: "published", label: "Publicado em" },
+            { key: "linked", label: "Matéria" },
+          ]}
+          rows={group.items.map((document) => ({
+            id: document.id,
+            cells: {
+              number: document.number,
+              agency: document.agency,
+              type: document.type,
+              published: dateFormat.format(new Date(document.publishedAt)),
+              // Ausência é estado legítimo e é dita com todas as letras — nunca inferida.
+              linked: document.generatedNewsSlug ?? "sem matéria associada",
+            },
+          }))}
+          emptyTitle={`Nenhum documento em ${group.label.toLowerCase()}`}
+          emptyText="A varredura roda a cada 30 minutos; documentos novos entram por aqui."
+        />
+      </section>
+    ))
+  }
+</PanelLayout>

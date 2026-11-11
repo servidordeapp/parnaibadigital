@@ -1,0 +1,89 @@
+# Ambiente de desenvolvimento local — D-23, Princípio XII.
+#
+# NADA AQUI É EXECUTADO EM CI, e nada aqui é usado por esta fase: o frontend é estático e o
+# backend não tem regra de negócio nem persistência (FR-038). O arquivo existe porque as
+# escolhas já foram feitas — Meilisearch por D-14, PostgreSQL/Redis/RabbitMQ pela tabela de
+# stack da Constituição — e tê-las versionadas evita que a próxima feature as reabra.
+#
+#   docker compose -f infrastructure/docker-compose.dev.yml up -d
+#
+# Credenciais abaixo são de desenvolvimento local e deliberadamente óbvias. Não há segredo
+# versionado aqui, e nada disto alcança rede pública: todo serviço publica porta apenas em
+# 127.0.0.1.
+
+name: parnaibadigital-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: parnaibadigital
+      POSTGRES_USER: parnaibadigital
+      POSTGRES_PASSWORD: local-dev-only
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parnaibadigital -d parnaibadigital"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: parnaibadigital
+      RABBITMQ_DEFAULT_PASS: local-dev-only
+    ports:
+      - "127.0.0.1:5672:5672"
+      # Painel de gestão — só para inspecionar fila durante o desenvolvimento.
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # Decidido em D-14 e declarado atrás da porta `SearchEngine`. Nenhuma integração nesta
+  # fase — o contêiner sobe, mas nada indexa nele.
+  meilisearch:
+    image: getmeili/meilisearch:v1.24
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: local-dev-only-master-key
+      MEILI_NO_ANALYTICS: "true"
+    ports:
+      - "127.0.0.1:7700:7700"
+    volumes:
+      - meilisearch-data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
+  meilisearch-data:

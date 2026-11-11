@@ -1,0 +1,39 @@
+# Cabeçalhos e regras de borda — configuração versionada (D-23, Princípio IV).
+#
+# Este arquivo não é executado em CI: é a configuração que o host de borda consome no
+# deploy. Ele está versionado porque cabeçalho de segurança combinado por conversa é
+# cabeçalho que some na primeira migração de infraestrutura.
+#
+# Formato compatível com Cloudflare Pages / Netlify.
+
+/*
+  # Impede que o conteúdo seja embutido em iframe de terceiro (clickjacking).
+  X-Frame-Options: DENY
+  # Impede o navegador de adivinhar o tipo de um arquivo servido com Content-Type errado.
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  # Nenhuma superfície desta fase usa câmera, microfone ou geolocalização do navegador.
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+  # HSTS: só depois do primeiro deploy com TLS estável em todos os subdomínios.
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  # CSP restrita porque o produto não carrega script, fonte nem ícone de terceiro
+  # (Princípio I e XI): fontes são auto-hospedadas (D-08) e ícones são inlinados (D-09).
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+
+# Ativos com hash no nome podem ser cacheados para sempre.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML: revalida sempre, para que uma correção editorial chegue rápido.
+/*.html
+  Cache-Control: public, max-age=0, s-maxage=300, must-revalidate
+
+# ——— Painel administrativo (admin.parnaibadigital.com.br) ———
+#
+# User Story 2, cenário 5: sem autenticação nesta fase (FR-038), o acesso é bloqueado **na
+# borda**. `noindex` e `Disallow: /` são higiene de SEO; o bloqueio real é este.
+#
+# Substitua a lista abaixo pelos endereços da redação antes do primeiro deploy do painel.
+https://admin.parnaibadigital.com.br/*
+  X-Robots-Tag: noindex, nofollow
+  # Access-Control: allow-ip 203.0.113.0/24   # ← rede da redação, a definir

@@ -1,0 +1,135 @@
+---
+import { MUNICIPALITIES } from "@parnaibadigital/api-client";
+import { Breadcrumb, Button, Checkbox, Input, SectionHeading, Select } from "@parnaibadigital/ui";
+import { neighborhoods } from "@parnaibadigital/api-client/mock/data/index";
+
+import PortalLayout from "../layouts/PortalLayout.astro";
+import { breadcrumbList, webPage, type Crumb } from "../lib/seo/structured-data";
+
+/**
+ * T077 — assinatura da newsletter por `POST` HTML nativo, **sem envio real** (FR-038).
+ *
+ * O formulário submete de verdade, com `method="post"`, e não por `fetch`. Isso importa
+ * mesmo sem destino: a marcação certa é o que garante que, quando o endpoint existir, nada
+ * na tela precise mudar — e é o que faz o formulário funcionar sem JavaScript no dia em que
+ * ele existir (Princípio XI).
+ *
+ * Dois canais, e-mail e WhatsApp, como no protótipo. Nenhum dado sai daqui nesta fase.
+ */
+const path = "/newsletter";
+const crumbs: Crumb[] = [
+  { name: "Home", path: "/" },
+  { name: "Newsletter", path },
+];
+
+const description =
+  "Sete notícias do seu bairro, farmácias de plantão, vagas do Sine e o resumo do Diário Oficial. Um e-mail por dia, às 6h30, sem custo.";
+
+const neighborhoodOptions = neighborhoods.map((neighborhood) => {
+  const municipality = MUNICIPALITIES.find(
+    (entry) => entry.ibgeCode === neighborhood.municipalityIbgeCode,
+  );
+  return {
+    value: neighborhood.id,
+    label: `${neighborhood.name} · ${municipality?.name ?? ""}`,
+  };
+});
+---
+
+<PortalLayout
+  meta={{ title: "Newsletter diária do litoral", description, path }}
+  schema={[webPage("Newsletter", description, path), breadcrumbList(crumbs)]}
+>
+  <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+  <header class="pd-listing__header">
+    <span class="pd-listing__kicker">Newsletter diária · 6h30</span>
+    <h1 class="pd-listing__title">A informação do litoral, antes do primeiro café</h1>
+    <p class="pd-listing__lede">{description}</p>
+  </header>
+
+  <div class="pd-listing__grid">
+    <section aria-label="Assinar a newsletter">
+      <form class="pd-newsletter__form" method="post" action="/newsletter" data-pd-newsletter>
+        <Input
+          id="newsletter-email"
+          label="Seu e-mail"
+          name="email"
+          type="email"
+          placeholder="seu@email.com"
+          required
+        />
+
+        <Input
+          id="newsletter-whatsapp"
+          label="WhatsApp (opcional)"
+          name="whatsapp"
+          type="tel"
+          icon="message-circle"
+          placeholder="(86) 90000-0000"
+        />
+
+        <Select
+          id="newsletter-bairro"
+          label="Seu bairro"
+          name="bairro"
+          options={neighborhoodOptions}
+        />
+
+        <Checkbox
+          id="newsletter-consentimento"
+          name="consentimento"
+          label="Concordo em receber o resumo diário e alertas urgentes do meu bairro."
+        />
+
+        <Button type="submit" variant="hot" size="lg">Quero receber</Button>
+
+        <p class="pd-newsletter__note">
+          Nada é enviado nesta fase do produto: a integração com o serviço de e-mail entra na
+          próxima entrega. O formulário já submete por HTML nativo, sem JavaScript.
+        </p>
+      </form>
+    </section>
+
+    <aside class="pd-listing__side" aria-label="O que vem na newsletter">
+      <SectionHeading accent="blue" level="h2">O que chega às 6h30</SectionHeading>
+      <ul class="pd-list-reset">
+        <li class="pd-item">
+          <h3 class="pd-item__title">Sete notícias do seu bairro</h3>
+          <p class="pd-item__text">Selecionadas pela curadoria e revisadas por editor.</p>
+        </li>
+        <li class="pd-item">
+          <h3 class="pd-item__title">Farmácias de plantão</h3>
+          <p class="pd-item__text">O plantão do dia, com endereço e horário.</p>
+        </li>
+        <li class="pd-item">
+          <h3 class="pd-item__title">Vagas do Sine</h3>
+          <p class="pd-item__text">As vagas abertas na sua cidade, com faixa salarial.</p>
+        </li>
+        <li class="pd-item">
+          <h3 class="pd-item__title">Resumo do Diário Oficial</h3>
+          <p class="pd-item__text">Em linguagem simples, com link para o documento original.</p>
+        </li>
+      </ul>
+    </aside>
+  </div>
+</PortalLayout>
+
+<style>
+  .pd-newsletter__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    max-width: var(--content-measure);
+    padding: var(--space-7);
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+  }
+
+  .pd-newsletter__note {
+    margin: 0;
+    font: var(--type-meta);
+    color: var(--text-faint);
+  }
+</style>

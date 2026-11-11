@@ -1,0 +1,181 @@
+---
+import type { IconName } from "@parnaibadigital/design-system/icons";
+
+import Icon from "./Icon.astro";
+
+/**
+ * Variantes e tamanhos exatamente como o `_adherence.oxlintrc.json` do DS os declara —
+ * a lista não é escolha nossa, é contrato importado.
+ *
+ * `href` transforma o botão em âncora. Isso não é conveniência: Princípio XI exige que
+ * todo destino de navegação seja `<a href>` resolvível. Um `<button>` com manipulador de
+ * clique que navega deixa a página quebrada sem JavaScript e invisível para o rastreador.
+ */
+interface Props {
+  variant?: "primary" | "hot" | "secondary" | "ghost" | "onDark" | undefined;
+  size?: "sm" | "md" | "lg" | undefined;
+  iconLeft?: IconName | undefined;
+  iconRight?: IconName | undefined;
+  block?: boolean | undefined;
+  disabled?: boolean | undefined;
+  href?: string | undefined;
+  type?: "button" | "submit" | undefined;
+  class?: string | undefined;
+}
+
+const {
+  variant = "primary",
+  size = "md",
+  iconLeft,
+  iconRight,
+  block = false,
+  disabled = false,
+  href,
+  type = "button",
+  class: className,
+} = Astro.props;
+
+const Tag = href === undefined ? "button" : "a";
+const iconSize = size === "lg" ? "md" : "sm";
+
+const classes = [
+  "pd-button",
+  `pd-button--${variant}`,
+  `pd-button--${size}`,
+  block && "pd-button--block",
+  "pd-pressable",
+  className,
+];
+---
+
+<Tag
+  class:list={classes}
+  href={href}
+  type={href === undefined ? type : undefined}
+  disabled={href === undefined && disabled ? true : undefined}
+  aria-disabled={href !== undefined && disabled ? "true" : undefined}
+>
+  {iconLeft !== undefined && <Icon name={iconLeft} size={iconSize} />}
+  <span class="pd-button__label"><slot /></span>
+  {iconRight !== undefined && <Icon name={iconRight} size={iconSize} />}
+</Tag>
+
+<style>
+  .pd-button {
+    display: inline-flex;
+    gap: var(--space-3);
+    align-items: center;
+    justify-content: center;
+
+    /* O DS fixa 44px como alvo mínimo de toque — abaixo disso o botão falha no celular,
+       que é o dispositivo primário deste produto. */
+    min-height: var(--tap-min);
+    padding: var(--space-3) var(--space-6);
+    border: var(--border-hair) solid transparent;
+    border-radius: var(--radius-sm);
+    font: var(--type-ui);
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--transition-interactive);
+  }
+
+  .pd-button__label {
+    /* Sentence case vem do conteúdo, nunca de text-transform: CAIXA ALTA forçada quebra
+       leitor de tela e contraria a voz da marca. */
+    white-space: nowrap;
+  }
+
+  .pd-button--block {
+    display: flex;
+    width: 100%;
+  }
+
+  .pd-button--sm {
+    min-height: var(--space-8);
+    padding: var(--space-2) var(--space-4);
+    font: var(--type-ui-sm);
+  }
+
+  .pd-button--lg {
+    padding: var(--space-4) var(--space-8);
+    font: var(--type-ui);
+  }
+
+  /* ——— Variantes ——— */
+
+  .pd-button--primary {
+    background: var(--surface-brand);
+    color: var(--text-inverse);
+    box-shadow: var(--shadow-brand-glow);
+  }
+
+  .pd-button--primary:hover {
+    background: var(--pd-blue-700);
+  }
+
+  /* O único CTA de conversão por tela — é o que a cor-de-sol sinaliza. */
+  .pd-button--hot {
+    background: var(--surface-hot);
+    color: var(--pd-ink-950);
+    box-shadow: var(--shadow-hot-glow);
+  }
+
+  .pd-button--hot:hover {
+    background: var(--pd-sun-600);
+  }
+
+  .pd-button--secondary {
+    border-color: var(--border-default);
+    background: var(--surface-card);
+    color: var(--text-brand);
+  }
+
+  .pd-button--secondary:hover {
+    background: var(--surface-card-hover);
+  }
+
+  .pd-button--ghost {
+    background: transparent;
+    color: var(--text-brand);
+  }
+
+  .pd-button--ghost:hover {
+    background: var(--pd-ink-100);
+  }
+
+  /* Sobre o azul do header/rodapé — a única transparência que a marca aceita. */
+  .pd-button--onDark {
+    background: rgb(
+      255 255 255 / 12%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- transparência sobre chrome azul, declarada no readme do DS; não há token para ela */
+    color: var(--text-inverse);
+  }
+
+  .pd-button--onDark:hover {
+    background: rgb(
+      255 255 255 / 24%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- par do estado acima, mesma origem no DS */
+  }
+
+  /* ——— Estados ——— */
+
+  .pd-button:active {
+    transform: scale(var(--press-scale));
+    box-shadow: var(--shadow-0);
+  }
+
+  .pd-button:focus-visible {
+    outline: var(--border-thick) solid var(--pd-blue-600);
+    outline-offset: var(--space-1);
+  }
+
+  .pd-button:disabled,
+  .pd-button[aria-disabled="true"] {
+    background: var(--pd-ink-100);
+    box-shadow: var(--shadow-0);
+    color: var(--text-faint);
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+</style>

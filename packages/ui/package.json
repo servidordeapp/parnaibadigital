@@ -1,0 +1,36 @@
+{
+  "name": "@parnaibadigital/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Definição única de cada componente, consumida pelo portal e pelo painel (SC-012).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./core/*": "./src/core/*",
+    "./brand/*": "./src/brand/*",
+    "./news/*": "./src/news/*",
+    "./navigation/*": "./src/navigation/*",
+    "./widgets/*": "./src/widgets/*",
+    "./tourism/*": "./src/tourism/*",
+    "./ads/*": "./src/ads/*",
+    "./overlay/*": "./src/overlay/*",
+    "./feedback/*": "./src/feedback/*",
+    "./data/*": "./src/data/*",
+    "./theme/*": "./src/theme/*"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@parnaibadigital/design-system": "workspace:*",
+    "@parnaibadigital/types": "workspace:*",
+    "lucide-static": "^0.548.0"
+  },
+  "peerDependencies": {
+    "astro": "^5.15.0"
+  }
+}

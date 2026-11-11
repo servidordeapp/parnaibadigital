@@ -1,0 +1,51 @@
+/**
+ * Princípio III / T086 — `prefers-reduced-motion`.
+ *
+ * O DS já é econômico em movimento (120ms hover/press, 200ms revelar, sem bounce, sem
+ * parallax). Quem pede menos movimento não pode, porém, perder a *leitura de estado*: o
+ * card ainda precisa mostrar que está sob o cursor, o botão ainda precisa mostrar que foi
+ * pressionado. Por isso a supressão é cirúrgica — cai a transformação, fica a mudança de
+ * cor e de sombra.
+ *
+ * Suprimido: o `scale(1.02)` lento da foto do hero, o `translateY(-1px)` de card, o
+ * `scale(0.985)` de press e a animação do pipeline do painel (T100).
+ * Preservado: fundo, cor de título, sombra, anel de foco.
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* `!important` é necessário: precisa vencer a transição declarada no componente. */
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* A transformação some por completo — é ela que causa desconforto, não a cor.
+     Os seletores acompanham os componentes reais (T056–T064): o card de notícia e o
+     card de hospedagem sobem 1px no hover, o hero amplia a foto, o botão encolhe no
+     press. Nenhum deles perde a mudança de cor ou de sombra, que é o que comunica o
+     estado. */
+  .pd-hoverable:hover,
+  .pd-pressable:active,
+  .pd-hero__backdrop,
+  .pd-hero:hover .pd-hero__backdrop,
+  .pd-news-card:hover,
+  .pd-lodging:hover,
+  .pd-destination:hover,
+  .pd-card--interactive:hover {
+    transform: none !important;
+  }
+
+  /* Pulsos ambientes do cabeçalho: informam "ao vivo", mas não são a informação. */
+  .pd-header__pulse {
+    animation: none !important;
+  }
+
+  /* O pipeline do painel continua legível: mostra a etapa corrente sem animar até ela. */
+  .pd-pipeline__stage {
+    animation: none !important;
+  }
+}

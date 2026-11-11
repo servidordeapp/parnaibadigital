@@ -1,0 +1,273 @@
+---
+import { getDataClient } from "@parnaibadigital/api-client";
+import { Badge, Button, Input, SectionHeading, Select } from "@parnaibadigital/ui";
+
+import PanelLayout from "../../../layouts/PanelLayout.astro";
+
+/**
+ * T099 — o editor de matéria.
+ *
+ * A exigência do cenário 3: **as abas trocam sem recarregar a tela e sem perder o estado
+ * das demais**. Isso é feito com `<input type="radio">` + `:checked` no CSS — os quatro
+ * painéis existem no documento o tempo todo, e o que muda é qual está visível. Nenhum campo
+ * é desmontado, então nada digitado se perde ao ir e voltar.
+ *
+ * A alternativa comum — renderizar só a aba ativa por JavaScript — perderia o conteúdo dos
+ * outros painéis a cada troca, que é exatamente o defeito que o cenário nomeia. E, de
+ * quebra, esta versão funciona sem JavaScript.
+ *
+ * **Nenhuma persistência** (FR-038): "Salvar" dispara um aviso e nada mais. É por isso que
+ * o botão diz o que faz e a tela avisa que não salva — prometer persistência que não existe
+ * é pior que não ter o botão.
+ */
+export async function getStaticPaths() {
+  const client = getDataClient();
+  const result = await client.news.list({ perPage: 100 });
+  return result.data.map((article) => ({ params: { id: article.id } }));
+}
+
+const { id } = Astro.params;
+
+const client = getDataClient();
+const listing = await client.news.list({ perPage: 100 });
+const summary = listing.data.find((entry) => entry.id === id);
+if (summary === undefined) {
+  throw new Error(`Matéria "${id ?? ""}" não existe mais — dado fora de sincronia.`);
+}
+
+const article = await client.news.findBySlug(summary.slug);
+const categories = await client.categories.list();
+const authors = await client.authors.list();
+
+const TABS = [
+  { key: "conteudo", label: "Conteúdo" },
+  { key: "seo", label: "SEO" },
+  { key: "geografia", label: "Geografia" },
+  { key: "curadoria", label: "Curadoria" },
+];
+---
+
+<PanelLayout
+  title="Editor"
+  active="/noticias"
+  lede="As abas trocam sem recarregar a tela e sem perder o que já foi digitado nas outras."
+>
+  <p class="pd-editor__headline">{summary.headline}</p>
+
+  <div class="pd-editor">
+    {
+      TABS.map((tab, index) => (
+        <input
+          class="pd-editor__radio"
+          type="radio"
+          name="pd-editor-tab"
+          id={`tab-${tab.key}`}
+          checked={index === 0}
+        />
+      ))
+    }
+
+    {
+      /* `role="group"`, não `role="tablist"`: as abas aqui são `<input type="radio">` + `<label>`,
+     que é o que as faz funcionar sem JavaScript (Princípio XI). `tablist` exige filhos
+     `role="tab"`, e rotular de aba um `<label>` que não implementa o teclado de aba entrega
+     ao leitor de tela uma promessa que a página não cumpre. `group` nomeia o conjunto sem
+     prometer comportamento. */
+    }
+    <div class="pd-editor__tablist" role="group" aria-label="Seções da matéria">
+      {
+        TABS.map((tab) => (
+          <label class="pd-editor__tab" for={`tab-${tab.key}`}>
+            {tab.label}
+          </label>
+        ))
+      }
+    </div>
+
+    <section class="pd-editor__panel pd-editor__panel--conteudo" aria-label="Conteúdo">
+      <SectionHeading level="h2">Conteúdo</SectionHeading>
+      <div class="pd-panel__card pd-editor__fields">
+        <Input id="editor-headline" label="Manchete" value={summary.headline} />
+        <Input id="editor-standfirst" label="Linha de apoio" value={summary.standfirst ?? ""} />
+        <label class="pd-editor__label" for="editor-body">Corpo</label>
+        <textarea class="pd-editor__textarea" id="editor-body" rows="10"
+          >{
+            (article?.body ?? [])
+              .map((block) => (block.type === "paragraph" ? block.text : ""))
+              .filter((text) => text !== "")
+              .join("\n\n")
+          }</textarea
+        >
+      </div>
+    </section>
+
+    <section class="pd-editor__panel pd-editor__panel--seo" aria-label="SEO">
+      <SectionHeading level="h2" accent="blue">SEO</SectionHeading>
+      <div class="pd-panel__card pd-editor__fields">
+        <Input id="editor-slug" label="Slug" value={summary.slug} />
+        <Input
+          id="editor-meta"
+          label="Meta description"
+          value={summary.standfirst ?? ""}
+          hint="Até 160 caracteres. É o que aparece no resultado de busca."
+        />
+        <Select
+          id="editor-categoria"
+          label="Editoria"
+          value={summary.categorySlug}
+          options={categories.map((category) => ({
+            value: category.slug,
+            label: category.name,
+          }))}
+        />
+      </div>
+    </section>
+
+    <section class="pd-editor__panel pd-editor__panel--geografia" aria-label="Geografia">
+      <SectionHeading level="h2">Geografia</SectionHeading>
+      <div class="pd-panel__card pd-editor__fields">
+        <p class="pd-metric__label">
+          Município primário é obrigatório e não pode ser removido: conteúdo sem vínculo geográfico
+          não compila (FR-021).
+        </p>
+        <Input id="editor-municipio" label="Código IBGE" value={summary.municipalityIbgeCode} />
+        <Input
+          id="editor-bairros"
+          label="Bairros"
+          value={summary.neighborhoodIds.join(", ")}
+          hint="Vazio é estado legítimo — a matéria pode ter vínculo apenas municipal."
+        />
+      </div>
+    </section>
+
+    <section class="pd-editor__panel pd-editor__panel--curadoria" aria-label="Curadoria">
+      <SectionHeading level="h2" accent="blue">Curadoria</SectionHeading>
+      <div class="pd-panel__card pd-editor__fields">
+        <p>
+          <Badge tone={summary.curation.kind === "curated" ? "brand" : "soft"}>
+            {summary.curation.kind === "curated" ? "Curada de fonte externa" : "Apuração própria"}
+          </Badge>
+        </p>
+        <Select
+          id="editor-autor"
+          label="Assinatura"
+          value={summary.authorSlug}
+          options={authors.map((author) => ({ value: author.slug, label: author.name }))}
+        />
+        {
+          article?.attribution !== undefined && (
+            <Input
+              id="editor-fonte"
+              label="Fonte original"
+              value={article.attribution.sourceName}
+              hint="Obrigatória em matéria curada (Princípio V, FR-018)."
+            />
+          )
+        }
+      </div>
+    </section>
+  </div>
+
+  <div class="pd-editor__actions">
+    <Button data-pd-toast-trigger="Nada foi salvo: esta fase não tem persistência (FR-038).">
+      Salvar
+    </Button>
+    <Button variant="secondary" href="/noticias">Voltar para a lista</Button>
+  </div>
+
+  <p class="pd-panel__note">
+    O painel não persiste nada nesta fase (FR-038): o botão acima confirma a ação e não grava.
+  </p>
+</PanelLayout>
+
+<style>
+  .pd-editor__headline {
+    margin: 0 0 var(--space-6);
+    font: var(--type-headline-sm);
+    color: var(--text-muted);
+  }
+
+  /* Os rádios ficam fora da tela, não escondidos por `display: none` — que os tiraria da
+     ordem de tabulação e tornaria as abas inalcançáveis por teclado. */
+  .pd-editor__radio {
+    position: absolute;
+    /* padrão de campo visualmente oculto — 1px aqui é a caixa de recorte do input, não uma
+       hairline de borda. Trocar por --border-hair mudaria o sentido da declaração.
+       check-tokens-disable-next-line */
+    width: 1px;
+    /* idem: altura da caixa de recorte do campo oculto.
+       check-tokens-disable-next-line */
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .pd-editor__tablist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+    border-bottom: var(--border-hair) solid var(--border-default);
+  }
+
+  .pd-editor__tab {
+    min-height: var(--tap-min);
+    padding: var(--space-3) var(--space-5);
+    border-bottom: var(--border-accent) solid transparent;
+    font: var(--type-ui);
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  .pd-editor__radio:focus-visible + .pd-editor__tablist {
+    outline: var(--border-thick) solid var(--pd-blue-600);
+  }
+
+  .pd-editor__panel {
+    display: none;
+  }
+
+  /* Cada rádio marcado revela o painel correspondente. Os quatro continuam no documento —
+     é isso que preserva o estado dos campos ao trocar de aba (cenário 3). */
+  #tab-conteudo:checked ~ .pd-editor__panel--conteudo,
+  #tab-seo:checked ~ .pd-editor__panel--seo,
+  #tab-geografia:checked ~ .pd-editor__panel--geografia,
+  #tab-curadoria:checked ~ .pd-editor__panel--curadoria {
+    display: block;
+  }
+
+  #tab-conteudo:checked ~ .pd-editor__tablist label[for="tab-conteudo"],
+  #tab-seo:checked ~ .pd-editor__tablist label[for="tab-seo"],
+  #tab-geografia:checked ~ .pd-editor__tablist label[for="tab-geografia"],
+  #tab-curadoria:checked ~ .pd-editor__tablist label[for="tab-curadoria"] {
+    border-bottom-color: var(--pd-blue-600);
+    color: var(--text-brand);
+  }
+
+  .pd-editor__fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .pd-editor__label {
+    font: var(--type-ui-sm);
+    color: var(--text-body);
+  }
+
+  .pd-editor__textarea {
+    padding: var(--space-4);
+    border: var(--border-hair) solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    font: var(--type-body-sm);
+    color: var(--text-strong);
+  }
+
+  .pd-editor__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin-top: var(--space-7);
+  }
+</style>

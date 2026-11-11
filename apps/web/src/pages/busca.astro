@@ -1,0 +1,179 @@
+---
+import { MUNICIPALITIES } from "@parnaibadigital/api-client";
+import { Button, Icon, NewsCard } from "@parnaibadigital/ui";
+
+import PortalLayout from "../layouts/PortalLayout.astro";
+import { client, newsHref, placeLabelForNews } from "../lib/site";
+import { website } from "../lib/seo/structured-data";
+
+/**
+ * T070 — busca por `GET` HTML nativo.
+ *
+ * A casca é estática (D-02) e o formulário submete para `/busca?q=…` — o mesmo endereço que
+ * o `SearchAction` do JSON-LD declara. Sem JavaScript a página devolve o acervo recente, que
+ * é um resultado útil; com JavaScript, o mesmo HTML é filtrado no cliente pelo termo da URL.
+ *
+ * A ordem importa: **primeiro o estado útil, depois o enriquecimento**. O caminho oposto —
+ * página vazia esperando script — é o que faz busca sumir para rastreador e para rede ruim.
+ *
+ * `noindex,follow`: a busca não entra no índice (conteúdo duplicado por definição), mas os
+ * links dela continuam levando descoberta às matérias.
+ */
+const result = await client.news.list({ perPage: 12 });
+const items = await Promise.all(
+  result.data.map(async (article) => ({ article, place: await placeLabelForNews(article) })),
+);
+
+const categories = await client.categories.list();
+
+const meta = {
+  title: "Buscar no ParnaíbaDigital",
+  description:
+    "Busque notícias, documentos do Diário Oficial, eventos e empresas de Parnaíba e do litoral do Piauí.",
+  path: "/busca",
+  noindex: true,
+};
+---
+
+<PortalLayout meta={meta} schema={[website()]}>
+  <h1 class="pd-listing__title">Buscar no ParnaíbaDigital</h1>
+
+  <form class="pd-search__form" action="/busca" method="get" role="search">
+    <label class="pd-search__label" for="pd-search-input">
+      Bairro, serviço ou número de documento
+    </label>
+    <div class="pd-search__row">
+      <Icon name="search" size="sm" class="pd-search__icon" />
+      <input
+        class="pd-search__input"
+        id="pd-search-input"
+        type="search"
+        name="q"
+        placeholder="Digite um bairro, um serviço ou o número de um documento…"
+        data-pd-search-input
+      />
+      <Button type="submit">Buscar</Button>
+    </div>
+  </form>
+
+  <nav class="pd-filters" aria-label="Sugestões de busca">
+    {
+      MUNICIPALITIES.map((municipality) => (
+        <a class="pd-filters__chip" href={`/busca?q=${encodeURIComponent(municipality.name)}`}>
+          {municipality.name}
+        </a>
+      ))
+    }
+    {
+      categories.slice(0, 4).map((category) => (
+        <a class="pd-filters__chip" href={`/busca?q=${encodeURIComponent(category.name)}`}>
+          {category.name}
+        </a>
+      ))
+    }
+  </nav>
+
+  <p class="pd-search__status" role="status" data-pd-search-status>
+    Mostrando as {String(items.length)} matérias mais recentes. Digite um termo para filtrar.
+  </p>
+
+  <div class="pd-listing__cards" data-pd-search-results>
+    {
+      items.map(({ article, place }) => (
+        <NewsCard
+          headline={article.headline}
+          href={newsHref(article.slug)}
+          place={place}
+          standfirst={article.standfirst}
+          kickerTone={article.tone}
+          curation={article.curation}
+          image={article.image}
+          headingLevel="h2"
+          class="pd-search__result"
+        />
+      ))
+    }
+  </div>
+
+  <p class="pd-empty__text pd-search__none" data-pd-search-empty hidden>
+    Nada encontrado. Tente o nome do bairro, o número da portaria ou o órgão responsável.
+  </p>
+</PortalLayout>
+
+<script>
+  /**
+   * Enriquecimento: filtra no cliente o que já veio no HTML. Sem este script a página
+   * continua listando o acervo recente — resultado menos preciso, nunca resultado nenhum.
+   */
+  const term = new URLSearchParams(window.location.search).get("q")?.trim().toLowerCase() ?? "";
+  const input = document.querySelector<HTMLInputElement>("[data-pd-search-input]");
+  const status = document.querySelector<HTMLElement>("[data-pd-search-status]");
+  const empty = document.querySelector<HTMLElement>("[data-pd-search-empty]");
+  const results = [...document.querySelectorAll<HTMLElement>(".pd-search__result")];
+
+  if (input !== null) input.value = term;
+
+  if (term !== "") {
+    let visible = 0;
+    for (const result of results) {
+      const match = (result.textContent ?? "").toLowerCase().includes(term);
+      result.hidden = !match;
+      if (match) visible += 1;
+    }
+
+    if (empty !== null) empty.hidden = visible > 0;
+    if (status !== null) {
+      status.textContent =
+        visible === 0
+          ? `Nenhum resultado para “${term}”.`
+          : `${String(visible)} resultado(s) para “${term}”.`;
+    }
+  }
+</script>
+
+<style>
+  .pd-search__form {
+    margin: var(--space-6) 0 var(--space-5);
+  }
+
+  .pd-search__label {
+    display: block;
+    margin-bottom: var(--space-3);
+    font: var(--type-ui-sm);
+    color: var(--text-muted);
+  }
+
+  .pd-search__row {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-2) var(--space-4);
+    border: var(--border-hair) solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+  }
+
+  .pd-search__icon {
+    color: var(--text-faint);
+  }
+
+  .pd-search__input {
+    flex: 1;
+    min-width: 0;
+    min-height: var(--tap-min);
+    border: none;
+    background: transparent;
+    font: var(--type-body);
+    color: var(--text-strong);
+  }
+
+  .pd-search__status {
+    margin: 0 0 var(--space-5);
+    font: var(--type-meta);
+    color: var(--text-muted);
+  }
+
+  .pd-search__none {
+    margin-top: var(--space-7);
+  }
+</style>

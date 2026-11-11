@@ -1,0 +1,105 @@
+---
+import { getDataClient } from "@parnaibadigital/api-client";
+import { analyticsMetrics, editorialQueue } from "@parnaibadigital/api-client/mock/data/index";
+import { Badge, DataTable, SectionHeading } from "@parnaibadigital/ui";
+
+import PanelLayout from "../layouts/PanelLayout.astro";
+
+/**
+ * T097 — Dashboard.
+ *
+ * Reúne o que as outras telas detalham: fila editorial do dia, audiência do mês e o que
+ * acabou de entrar no ar. Nada é calculado aqui — os números chegam já formatados dos dados
+ * demonstrativos, porque a decisão de arredondamento pertence a quem produziu a métrica
+ * (FR-026), não à tela que a exibe.
+ */
+const client = getDataClient();
+const latest = await client.news.list({ perPage: 6 });
+const documents = await client.gazette.list();
+const categories = await client.categories.list();
+
+const pending = documents.filter((document) => document.status !== "publicado");
+---
+
+<PanelLayout
+  title="Dashboard"
+  active="/"
+  lede="A fila editorial do dia, a audiência do mês e o que acabou de entrar no ar."
+>
+  <section class="pd-panel__section" aria-label="Fila editorial de hoje">
+    <SectionHeading level="h2">Fila editorial de hoje</SectionHeading>
+    <ul class="pd-metrics">
+      {
+        editorialQueue.map((metric) => (
+          <li class="pd-metric">
+            <span class="pd-metric__label">{metric.label}</span>
+            <span class="pd-metric__value">{metric.value}</span>
+            <span class="pd-metric__delta">
+              {metric.delta} · {metric.period}
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="pd-panel__section" aria-label="Audiência do mês">
+    <SectionHeading level="h2" accent="blue">Audiência do mês</SectionHeading>
+    <ul class="pd-metrics">
+      {
+        analyticsMetrics.slice(0, 4).map((metric) => (
+          <li class="pd-metric">
+            <span class="pd-metric__label">{metric.label}</span>
+            <span class="pd-metric__value">{metric.value}</span>
+            <span class="pd-metric__delta">
+              {metric.delta} · {metric.period}
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="pd-panel__section" aria-label="Últimas matérias">
+    <SectionHeading level="h2">Últimas matérias</SectionHeading>
+    <DataTable
+      caption="Matérias publicadas recentemente"
+      columns={[
+        { key: "headline", label: "Manchete" },
+        { key: "category", label: "Editoria" },
+        { key: "views", label: "Leituras", numeric: true },
+      ]}
+      rows={latest.data.map((article) => ({
+        id: article.id,
+        href: `/noticias/${article.id}/editar`,
+        cells: {
+          headline: article.headline,
+          category: categories.find((entry) => entry.slug === article.categorySlug)?.name ?? "",
+          views: String(article.viewCount ?? 0),
+        },
+      }))}
+    />
+  </section>
+
+  <section class="pd-panel__section" aria-label="Documentos aguardando">
+    <SectionHeading level="h2" accent="blue">Documentos aguardando</SectionHeading>
+    <ul class="pd-panel__list">
+      {
+        pending.map((document) => (
+          <li class="pd-panel__card">
+            <Badge tone={document.status === "fila_ia" ? "brand" : "hot"}>
+              {document.status === "fila_ia" ? "Fila de IA" : "Em revisão"}
+            </Badge>
+            <p class="pd-metric__label">
+              {document.number} · {document.agency}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+    <p class="pd-panel__note">
+      Documento em fila de IA ainda não passou pela revisão humana e, por isso, não pode ter matéria
+      associada (Princípio V).
+    </p>
+  </section>
+</PanelLayout>

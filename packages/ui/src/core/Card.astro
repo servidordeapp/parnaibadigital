@@ -1,0 +1,105 @@
+---
+/**
+ * Superfície de card do DS: fundo branco, hairline, raio 10px, `--shadow-1` em repouso.
+ * No hover: `--shadow-2`, `translateY(-1px)` e fundo azul 50.
+ *
+ * O DS é explícito sobre o que NÃO fazer aqui — nunca borda colorida só na esquerda,
+ * nunca gradiente dentro de card. Ambos aparecem por hábito de dashboard e não pertencem
+ * a um portal que deve parecer jornal.
+ */
+interface Props {
+  tone?: "default" | "subtle" | "warm" | "utility" | "dark" | undefined;
+  padding?: "none" | "sm" | "md" | "lg" | undefined;
+  interactive?: boolean | undefined;
+  href?: string | undefined;
+  as?: "div" | "article" | "section" | "li" | undefined;
+  class?: string | undefined;
+}
+
+const {
+  tone = "default",
+  padding = "md",
+  interactive = false,
+  href,
+  as = "div",
+  class: className,
+} = Astro.props;
+
+// Com href o card inteiro é um destino real; sem ele o elemento semântico pedido vence.
+const Tag = href === undefined ? as : "a";
+const isInteractive = interactive || href !== undefined;
+---
+
+<Tag
+  class:list={[
+    "pd-card",
+    `pd-card--${tone}`,
+    `pd-card--pad-${padding}`,
+    isInteractive && "pd-card--interactive",
+    isInteractive && "pd-hoverable",
+    className,
+  ]}
+  href={href}
+>
+  <slot />
+</Tag>
+
+<style>
+  .pd-card {
+    display: block;
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-1);
+    color: inherit;
+    text-decoration: none;
+    transition: var(--transition-interactive);
+  }
+
+  .pd-card--pad-none {
+    padding: var(--space-0);
+  }
+  .pd-card--pad-sm {
+    padding: var(--space-4);
+  }
+  /* 16px é o respiro interno padrão de card no DS. */
+  .pd-card--pad-md {
+    padding: var(--space-5);
+  }
+  .pd-card--pad-lg {
+    padding: var(--space-7);
+  }
+
+  .pd-card--subtle {
+    background: var(--surface-subtle);
+  }
+  /* O creme só existe dentro do box de contexto do post. */
+  .pd-card--warm {
+    background: var(--surface-context);
+  }
+  .pd-card--utility {
+    background: var(--surface-utility);
+  }
+
+  .pd-card--dark {
+    border-color: transparent;
+    background: var(--surface-header);
+    color: var(--text-inverse);
+  }
+
+  .pd-card--interactive:hover {
+    background: var(--surface-card-hover);
+    box-shadow: var(--shadow-2);
+    transform: translateY(-1px);
+  }
+
+  .pd-card--interactive:active {
+    box-shadow: var(--shadow-1);
+    transform: none;
+  }
+
+  .pd-card--interactive:focus-visible {
+    outline: var(--border-thick) solid var(--pd-blue-600);
+    outline-offset: var(--space-1);
+  }
+</style>

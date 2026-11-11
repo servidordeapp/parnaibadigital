@@ -1,0 +1,120 @@
+---
+import type { IconName, IconSize } from "@parnaibadigital/design-system/icons";
+
+import Icon from "./Icon.astro";
+
+/**
+ * Botão só de ícone. `label` é obrigatório e não tem valor padrão: um botão sem nome
+ * acessível é invisível para quem usa leitor de tela, e este componente aparece no chrome
+ * do header — onde um controle mudo custa a navegação inteira (Princípio III).
+ */
+interface Props {
+  icon: IconName;
+  label: string;
+  tone?: "neutral" | "brand" | "onDark" | "hot" | undefined;
+  size?: "sm" | "md" | "lg" | undefined;
+  iconSize?: IconSize | undefined;
+  active?: boolean | undefined;
+  href?: string | undefined;
+  class?: string | undefined;
+}
+
+const {
+  icon,
+  label,
+  tone = "neutral",
+  size = "md",
+  iconSize,
+  active = false,
+  href,
+  class: className,
+} = Astro.props;
+
+const Tag = href === undefined ? "button" : "a";
+const resolvedIconSize = iconSize ?? (size === "lg" ? "lg" : "md");
+---
+
+<Tag
+  class:list={[
+    "pd-icon-button",
+    `pd-icon-button--${tone}`,
+    `pd-icon-button--${size}`,
+    "pd-pressable",
+    className,
+  ]}
+  href={href}
+  type={href === undefined ? "button" : undefined}
+  aria-label={label}
+  title={label}
+  aria-pressed={href === undefined && active ? "true" : undefined}
+  aria-current={href !== undefined && active ? "page" : undefined}
+>
+  <Icon name={icon} size={resolvedIconSize} />
+</Tag>
+
+<style>
+  .pd-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: pointer;
+    transition: var(--transition-interactive);
+  }
+
+  .pd-icon-button--sm {
+    min-width: var(--space-8);
+    min-height: var(--space-8);
+  }
+
+  .pd-icon-button--neutral {
+    color: var(--text-muted);
+  }
+  .pd-icon-button--neutral:hover {
+    background: var(--pd-ink-100);
+    color: var(--text-strong);
+  }
+
+  .pd-icon-button--brand {
+    color: var(--text-brand);
+  }
+  .pd-icon-button--brand:hover {
+    background: var(--surface-card-hover);
+  }
+
+  .pd-icon-button--hot {
+    color: var(--text-hot);
+  }
+  .pd-icon-button--hot:hover {
+    background: var(--surface-hot-soft);
+  }
+
+  .pd-icon-button--onDark {
+    color: var(--text-inverse);
+  }
+
+  .pd-icon-button--onDark:hover {
+    background: rgb(
+      255 255 255 / 12%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- transparência sobre o azul do chrome, declarada no readme do DS */
+  }
+
+  .pd-icon-button:active {
+    transform: scale(var(--press-scale));
+  }
+
+  .pd-icon-button:focus-visible {
+    outline: var(--border-thick) solid var(--pd-blue-600);
+    outline-offset: var(--space-1);
+  }
+
+  .pd-icon-button[aria-pressed="true"],
+  .pd-icon-button[aria-current="page"] {
+    background: var(--surface-brand-soft);
+    color: var(--text-brand);
+  }
+</style>

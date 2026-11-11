@@ -1,0 +1,184 @@
+---
+import { findMunicipalityByIbgeCode, MUNICIPALITIES } from "@parnaibadigital/api-client";
+import {
+  AdSlot,
+  Badge,
+  Breadcrumb,
+  EventList,
+  PhotoFrame,
+  SectionHeading,
+} from "@parnaibadigital/ui";
+
+import PortalLayout from "../layouts/PortalLayout.astro";
+import { client, currencyFormat } from "../lib/site";
+import { breadcrumbList, eventItemList, type Crumb } from "../lib/seo/structured-data";
+
+/**
+ * T071 — a agenda do litoral.
+ *
+ * Cada evento vira um `Event` no `ItemList` do JSON-LD, com `startDate`, `location` e
+ * `offers`. Esse trio é o que faz o evento aparecer nos resultados ricos de agenda — e a
+ * ausência de qualquer um deles derruba o item inteiro, em silêncio.
+ */
+const events = await client.events.list();
+
+const dayFormat = new Intl.DateTimeFormat("pt-BR", { day: "2-digit" });
+const weekdayFormat = new Intl.DateTimeFormat("pt-BR", { weekday: "short" });
+const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+const path = "/eventos";
+const crumbs: Crumb[] = [
+  { name: "Home", path: "/" },
+  { name: "Eventos", path },
+];
+
+const description =
+  "Agenda de shows, feiras, esporte e cultura em Parnaíba, Luís Correia, Ilha Grande, Buriti dos Lopes e Cajueiro da Praia.";
+---
+
+<PortalLayout
+  meta={{ title: "Eventos no litoral do Piauí", description, path }}
+  schema={[
+    eventItemList(events, (event) => findMunicipalityByIbgeCode(event.municipalityIbgeCode)),
+    breadcrumbList(crumbs),
+  ]}
+  activeSection="/eventos"
+>
+  <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+  <header class="pd-listing__header">
+    <span class="pd-listing__kicker">Agenda do litoral</span>
+    <h1 class="pd-listing__title">Eventos confirmados</h1>
+    <p class="pd-listing__lede">{description}</p>
+  </header>
+
+  <nav class="pd-filters" aria-label="Filtrar por município">
+    <a class="pd-filters__chip" href={path} aria-current="page">Todas as cidades</a>
+    {
+      MUNICIPALITIES.map((municipality) => (
+        <a class="pd-filters__chip" href={`/${municipality.slug}`}>
+          {municipality.name}
+        </a>
+      ))
+    }
+  </nav>
+
+  <div class="pd-listing__grid">
+    <section aria-label="Lista de eventos">
+      <SectionHeading>{String(events.length)} eventos confirmados</SectionHeading>
+
+      {
+        events.length === 0 ? (
+          <div class="pd-empty">
+            <h3 class="pd-empty__title">Nenhum evento confirmado</h3>
+            <p class="pd-empty__text">
+              A agenda é montada a partir das prefeituras e dos produtores locais. Assim que algo
+              for confirmado, aparece aqui.
+            </p>
+            <a class="pd-empty__action" href="/">
+              Voltar para a home
+            </a>
+          </div>
+        ) : (
+          <ul class="pd-list-reset">
+            {events.map((event) => {
+              const start = new Date(event.startsAt);
+              const municipality = findMunicipalityByIbgeCode(event.municipalityIbgeCode);
+              return (
+                <li class="pd-event">
+                  <time class="pd-event__date" datetime={event.startsAt}>
+                    <span class="pd-event__day">{dayFormat.format(start)}</span>
+                    <span class="pd-event__weekday">
+                      {weekdayFormat.format(start).replace(".", "")}
+                    </span>
+                  </time>
+
+                  <PhotoFrame ratio="16/9" radius="sm" class="pd-event__photo" />
+
+                  <div class="pd-event__body">
+                    <div class="pd-item__head">
+                      <Badge tone="soft">{event.categorySlug}</Badge>
+                      <span class="pd-item__meta">{timeFormat.format(start)}</span>
+                    </div>
+                    <h3 class="pd-item__title">{event.title}</h3>
+                    <p class="pd-item__text">
+                      {event.venue}
+                      {municipality === undefined ? "" : ` · ${municipality.name}`}
+                    </p>
+                  </div>
+
+                  <span class="pd-item__value">
+                    {event.price.free
+                      ? "Entrada gratuita"
+                      : currencyFormat.format(event.price.amount ?? 0)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )
+      }
+    </section>
+
+    <aside class="pd-listing__side" aria-label="Mais da agenda">
+      <AdSlot format="rectangle" position="Sidebar da agenda" />
+      <EventList items={events.slice(0, 3)} title="Próximos dias" />
+    </aside>
+  </div>
+</PortalLayout>
+
+<style>
+  .pd-event {
+    display: grid;
+    grid-template-columns: var(--space-11) 1fr;
+    gap: var(--space-5);
+    align-items: center;
+    padding: var(--space-5);
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-1);
+  }
+
+  .pd-event__date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-3) 0;
+    border: var(--border-hair) solid var(--border-hot);
+    border-radius: var(--radius-sm);
+    background: var(--surface-hot-soft);
+    color: var(--text-hot);
+  }
+
+  .pd-event__day {
+    font: var(--weight-bold) var(--size-2xl) / 1 var(--font-display);
+  }
+
+  .pd-event__weekday {
+    font: var(--type-kicker);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-event__photo {
+    display: none;
+  }
+
+  .pd-event__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+
+  @media (width >= 900px) {
+    .pd-event {
+      grid-template-columns: var(--space-11) calc(var(--space-12) * 2) 1fr auto;
+    }
+
+    .pd-event__photo {
+      display: block;
+    }
+  }
+</style>

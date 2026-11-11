@@ -1,0 +1,144 @@
+---
+import { findMunicipalityByIbgeCode } from "@parnaibadigital/api-client";
+import { AdSlot, Badge, Breadcrumb, Button, Icon } from "@parnaibadigital/ui";
+import { neighborhoods } from "@parnaibadigital/api-client/mock/data/index";
+
+import PortalLayout from "../layouts/PortalLayout.astro";
+import { client } from "../lib/site";
+import { breadcrumbList, businessItemList, type Crumb } from "../lib/seo/structured-data";
+
+/**
+ * T074 — o guia comercial.
+ *
+ * Cada empresa vira um `LocalBusiness` no `ItemList`, com endereço e avaliação. É o schema
+ * que faz o guia aparecer em busca local — e o `addressLocality` sai do bairro cadastrado,
+ * não de um campo de cidade solto: a empresa se localiza por bairro e o município vem por
+ * transitividade (regra 1 de `data-model.md`).
+ */
+const companies = await client.companies.list();
+
+const enriched = companies.map((company) => {
+  const neighborhood = neighborhoods.find((entry) => entry.id === company.neighborhoodId);
+  const municipality =
+    neighborhood === undefined
+      ? undefined
+      : findMunicipalityByIbgeCode(neighborhood.municipalityIbgeCode);
+
+  return { company, neighborhood, municipality };
+});
+
+const OPENING_LABELS = {
+  aberto: { label: "Aberto agora", tone: "utility" },
+  fechado: { label: "Fechado", tone: "neutral" },
+  fecha_em_breve: { label: "Fecha em breve", tone: "hot" },
+} as const;
+
+const path = "/empresas";
+const crumbs: Crumb[] = [
+  { name: "Home", path: "/" },
+  { name: "Empresas", path },
+];
+
+const description =
+  "Guia comercial de Parnaíba e do litoral do Piauí: restaurantes, serviços, saúde, hospedagem e comércio, bairro a bairro.";
+
+const ratingFormat = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1 });
+---
+
+<PortalLayout
+  meta={{ title: "Empresas de Parnaíba e região", description, path }}
+  schema={[
+    businessItemList(
+      enriched.map(({ company, neighborhood, municipality }) => ({
+        name: company.name,
+        path,
+        neighborhoodName: neighborhood?.name ?? "",
+        municipality,
+        rating: company.rating,
+        reviewCount: company.reviewCount,
+        ...(company.phone === undefined ? {} : { phone: company.phone }),
+      })),
+    ),
+    breadcrumbList(crumbs),
+  ]}
+  activeSection="/empresas"
+>
+  <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+  <header class="pd-listing__header">
+    <span class="pd-listing__kicker">Guia comercial</span>
+    <h1 class="pd-listing__title">Empresas de Parnaíba e região</h1>
+    <p class="pd-listing__lede">{description}</p>
+  </header>
+
+  <div class="pd-listing__grid">
+    <section aria-label="Empresas cadastradas">
+      {
+        enriched.length === 0 ? (
+          <div class="pd-empty">
+            <h2 class="pd-empty__title">Nenhuma empresa cadastrada ainda</h2>
+            <p class="pd-empty__text">
+              O guia começa pelos parceiros locais. Se você tem um negócio no litoral, fale com a
+              equipe comercial.
+            </p>
+            <a class="pd-empty__action" href="/anuncie">
+              Quero anunciar
+            </a>
+          </div>
+        ) : (
+          <div class="pd-listing__cards">
+            {enriched.map(({ company, neighborhood, municipality }) => (
+              <article class="pd-item">
+                <div class="pd-item__head">
+                  <Badge tone={OPENING_LABELS[company.openingStatus].tone}>
+                    {OPENING_LABELS[company.openingStatus].label}
+                  </Badge>
+                  <span class="pd-item__meta">
+                    {neighborhood?.name ?? ""}
+                    {municipality === undefined ? "" : ` · ${municipality.name}`}
+                  </span>
+                </div>
+
+                <h2 class="pd-item__title">{company.name}</h2>
+
+                <p class="pd-item__text">
+                  {ratingFormat.format(company.rating)} de 5 · {String(company.reviewCount)}{" "}
+                  avaliações
+                </p>
+
+                {company.phone !== undefined && (
+                  <div class="pd-item__actions">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      iconLeft="phone"
+                      href={`tel:${company.phone.replace(/\D/g, "")}`}
+                    >
+                      {company.phone}
+                    </Button>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        )
+      }
+    </section>
+
+    <aside class="pd-listing__side" aria-label="Publicidade">
+      <div class="pd-item">
+        <h2 class="pd-item__title">
+          <Icon name="map-pin" size="sm" /> Sua empresa aqui
+        </h2>
+        <p class="pd-item__text">
+          O guia é vendido diretamente para anunciantes do litoral, sem intermediário.
+        </p>
+        <div class="pd-item__actions">
+          <Button variant="hot" size="sm" href="/anuncie">Anuncie aqui</Button>
+        </div>
+      </div>
+
+      <AdSlot format="rectangle" position="Sidebar do guia" />
+    </aside>
+  </div>
+</PortalLayout>

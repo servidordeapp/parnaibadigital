@@ -1,0 +1,141 @@
+---
+import type { ContextItem, ContextLink } from "./types";
+
+import Icon from "../core/Icon.astro";
+
+/**
+ * "Bloco de Contexto Regional" — dados locais fixos dentro da matéria (telefones úteis,
+ * serviços do bairro, links de utilidade), sobre a superfície creme do DS.
+ *
+ * É `<aside>` e não `<section>`: o conteúdo é tangencial ao texto, e a distinção muda como
+ * a tecnologia assistiva o anuncia e como o buscador entende o corpo da matéria. Marcado
+ * como `section` ele competiria com o texto principal na extração de conteúdo.
+ *
+ * Os itens vêm em `<dl>`: rótulo e valor são um par termo/definição, e essa é a estrutura
+ * que o leitor de tela sabe percorrer. Uma sequência de `<div>` com dois `<span>` lê como
+ * texto corrido e perde o pareamento.
+ */
+interface Props {
+  /** Bairro ao qual o contexto pertence. Ausente em matéria sem bairro (edge case). */
+  neighborhood?: string | undefined;
+  title?: string | undefined;
+  items?: readonly ContextItem[] | undefined;
+  links?: readonly ContextLink[] | undefined;
+  class?: string | undefined;
+}
+
+const {
+  neighborhood,
+  title = "Contexto do bairro",
+  items = [],
+  links = [],
+  class: className,
+} = Astro.props;
+
+const heading = neighborhood === undefined ? title : `${title} · ${neighborhood}`;
+---
+
+<aside class:list={["pd-context", className]} aria-labelledby="pd-context-title">
+  <header class="pd-context__header">
+    <Icon name="life-buoy" size="md" class="pd-context__icon" />
+    <h3 class="pd-context__title" id="pd-context-title">{heading}</h3>
+  </header>
+
+  {
+    items.length > 0 && (
+      <dl class="pd-context__items">
+        {items.map((item) => (
+          <div class="pd-context__item">
+            <dt class="pd-context__label">{item.label}</dt>
+            <dd class="pd-context__value">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+
+  {
+    links.length > 0 && (
+      <ul class="pd-context__links">
+        {links.map((link) => (
+          <li>
+            <a class="pd-context__link" href={link.href}>
+              {link.label}
+              <Icon name="chevron-right" size="xs" />
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</aside>
+
+<style>
+  .pd-context {
+    margin: var(--space-8) 0;
+    padding: var(--space-6);
+    border: var(--border-hair) solid var(--border-hot);
+    border-radius: var(--radius-md);
+    background: var(--surface-context);
+  }
+
+  .pd-context__header {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    margin-bottom: var(--space-5);
+  }
+
+  .pd-context__icon {
+    color: var(--text-hot);
+  }
+
+  .pd-context__title {
+    margin: 0;
+    font: var(--type-headline-sm);
+
+    /* Alias, não rampa: `--pd-sun-900` fixo rendia 1,78:1 sobre `--surface-context` no tema
+       escuro, porque lá a superfície vira marrom escuro. `--text-hot` acompanha o tema. */
+    color: var(--text-hot);
+  }
+
+  .pd-context__items {
+    display: grid;
+    /* piso da trilha antes de o bloco quebrar em coluna única. É decisão de fluxo, não de
+       espaçamento — o DS não tokeniza trilha de grid.
+       check-tokens-disable-next-line */
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-4) var(--space-6);
+    margin: 0;
+  }
+
+  .pd-context__label {
+    font: var(--type-kicker);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-context__value {
+    margin: var(--space-1) 0 0;
+    font: var(--type-body-sm);
+    color: var(--text-strong);
+  }
+
+  .pd-context__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin: var(--space-5) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-context__link {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    font: var(--type-ui-sm);
+    color: var(--text-link);
+  }
+</style>

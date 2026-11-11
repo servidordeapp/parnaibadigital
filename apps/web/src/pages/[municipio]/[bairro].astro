@@ -1,0 +1,133 @@
+---
+import { MUNICIPALITIES } from "@parnaibadigital/api-client";
+import { AdSlot, Breadcrumb, NewsCard, SectionHeading } from "@parnaibadigital/ui";
+
+import PortalLayout from "../../layouts/PortalLayout.astro";
+import {
+  client,
+  municipalityHref,
+  neighborhoodHref,
+  newsHref,
+  placeLabelForNews,
+} from "../../lib/site";
+import {
+  breadcrumbList,
+  collectionPage,
+  place as placeSchema,
+  type Crumb,
+} from "../../lib/seo/structured-data";
+import { neighborhoods as allNeighborhoods } from "@parnaibadigital/api-client/mock/data/index";
+
+/**
+ * T069 — o bairro, **sempre qualificado pelo município**.
+ *
+ * A rota é `/{municipio}/{bairro}` e não `/bairro/{slug}` por causa de um caso real, não
+ * hipotético: "Centro" existe em Parnaíba e em Luís Correia. Uma rota de nível único faria
+ * os dois competirem pelo mesmo endereço, e o segundo a ser gerado sobrescreveria o
+ * primeiro — a matéria apareceria no bairro errado, com a geografia errada no JSON-LD.
+ *
+ * O par município+bairro também é o que o `containedInPlace` do schema expressa: o bairro é
+ * declarado *dentro* do município, e é assim que o buscador entende a hierarquia.
+ */
+export function getStaticPaths() {
+  return allNeighborhoods.flatMap((neighborhood) => {
+    const municipality = MUNICIPALITIES.find(
+      (entry) => entry.ibgeCode === neighborhood.municipalityIbgeCode,
+    );
+    if (municipality === undefined) return [];
+
+    return [{ params: { municipio: municipality.slug, bairro: neighborhood.slug } }];
+  });
+}
+
+const { municipio, bairro } = Astro.params;
+
+const municipality = await client.geo.findMunicipalityBySlug(municipio ?? "");
+if (municipality === undefined) {
+  // Rota gerada por `getStaticPaths` nunca cai aqui. Se cair, o dado sumiu entre a
+  // geração e a renderização: reprovar a construção é o certo — um redirecionamento
+  // não é servível por saída estática e produziria uma página muda em produção.
+  throw new Error(`municipality inexistente em ${Astro.url.pathname} — dado fora de sincronia.`);
+}
+
+const neighborhood = (await client.geo.listNeighborhoods(municipality.ibgeCode)).find(
+  (entry) => entry.slug === bairro,
+);
+if (neighborhood === undefined) {
+  // Rota gerada por `getStaticPaths` nunca cai aqui. Se cair, o dado sumiu entre a
+  // geração e a renderização: reprovar a construção é o certo — um redirecionamento
+  // não é servível por saída estática e produziria uma página muda em produção.
+  throw new Error(`neighborhood inexistente em ${Astro.url.pathname} — dado fora de sincronia.`);
+}
+
+const result = await client.news.list({ neighborhoodId: neighborhood.id, perPage: 12 });
+const items = await Promise.all(
+  result.data.map(async (article) => ({ article, place: await placeLabelForNews(article) })),
+);
+
+const path = neighborhoodHref(municipality, neighborhood);
+const crumbs: Crumb[] = [
+  { name: "Home", path: "/" },
+  { name: municipality.name, path: municipalityHref(municipality) },
+  { name: neighborhood.name, path },
+];
+
+const description = `Tudo o que muda em ${neighborhood.name}, ${municipality.name}: obras, trânsito, serviços públicos e agenda do bairro.`;
+---
+
+<PortalLayout
+  meta={{ title: `${neighborhood.name}, ${municipality.name}`, description, path }}
+  schema={[
+    placeSchema(municipality, neighborhood),
+    collectionPage(neighborhood.name, description, path),
+    breadcrumbList(crumbs),
+  ]}
+>
+  <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+  <header class="pd-listing__header">
+    <span class="pd-listing__kicker">Bairro de {municipality.name}</span>
+    <h1 class="pd-listing__title">{neighborhood.name}</h1>
+    <p class="pd-listing__lede">{description}</p>
+  </header>
+
+  <div class="pd-listing__grid">
+    <section aria-label={`Notícias de ${neighborhood.name}`}>
+      <SectionHeading>Últimas do bairro</SectionHeading>
+
+      {
+        items.length === 0 ? (
+          <div class="pd-empty">
+            <h3 class="pd-empty__title">Nenhuma matéria de {neighborhood.name} ainda</h3>
+            <p class="pd-empty__text">
+              O bairro está no registro e entra na varredura. Enquanto isso, acompanhe o que
+              acontece no restante de {municipality.name}.
+            </p>
+            <a class="pd-empty__action" href={municipalityHref(municipality)}>
+              Ver {municipality.name}
+            </a>
+          </div>
+        ) : (
+          <div class="pd-listing__rows">
+            {items.map(({ article, place }) => (
+              <NewsCard
+                layout="row"
+                headline={article.headline}
+                href={newsHref(article.slug)}
+                place={place}
+                standfirst={article.standfirst}
+                kickerTone={article.tone}
+                curation={article.curation}
+                image={article.image}
+              />
+            ))}
+          </div>
+        )
+      }
+    </section>
+
+    <aside class="pd-listing__side" aria-label="Publicidade">
+      <AdSlot format="rectangle" position="Sidebar do bairro" />
+    </aside>
+  </div>
+</PortalLayout>

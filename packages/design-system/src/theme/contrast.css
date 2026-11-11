@@ -1,0 +1,63 @@
+/**
+ * Correções de contraste do tema CLARO — Princípio III, SC-004.
+ *
+ * Irmão de `dark.css`, e pelo mesmo motivo: o Design System importado não pode ser editado
+ * (SC-017), então toda correção vive ao lado dele. A diferença é que `dark.css` acrescenta um
+ * tema que o DS não publica, enquanto este arquivo **conserta** um alias que o DS publica
+ * abaixo do mínimo de WCAG.
+ *
+ * A regra que cada correção segue é a mesma das duas de `dark.css` (`--focus-ring` e
+ * `--text-urgent`): **re-apontar o alias para outro degrau da rampa que já existe**. Nenhuma
+ * cor nova entra no sistema, e a marca continua sendo a do projeto de design.
+ *
+ * Por que aqui e não em cada componente: um conserto por componente vira dívida distribuída —
+ * o próximo componente que usar o mesmo alias nasce reprovando de novo, e o defeito volta
+ * pela porta dos fundos. Corrigido no alias, vale para tudo que já existe e para o que vier.
+ *
+ * Este arquivo é `:root` puro, sem seletor de tema: `dark.css` vem depois na cascata e
+ * sobrepõe os mesmos aliases com os valores escuros, que já passam com folga.
+ *
+ * Pendência de retorno ao design: como o bloco escuro, estas correções devem voltar ao
+ * projeto por `DesignSync` (T148). Registradas em
+ * `docs/decisions/0007-substituicoes-do-design-system.md`.
+ */
+
+:root {
+  /**
+   * `--text-hot` era `--pd-sun-700` (#b85706). Medições:
+   *   - sobre `--surface-hot-soft` (`--pd-sun-100`): 4,19:1 — REPROVA WCAG 1.4.3 (mín. 4,5:1)
+   *   - sobre `--surface-page` (branco):             4,77:1 — passa, mas sem margem nenhuma
+   *
+   * `--pd-sun-900` devolve 8,15:1 sobre a superfície tingida e 9,26:1 sobre branco. É o
+   * degrau que o próprio protótipo usa quando escreve laranja sobre fundo laranja claro —
+   * ou seja, a correção alinha o alias ao uso que a fonte de verdade visual já fazia.
+   *
+   * O laranja vivo (`--pd-sun-500`) permanece intocado onde é FUNDO ou elemento gráfico:
+   * a régua de seção, o sublinhado da seção ativa e o "Digital" da marca não mudam.
+   */
+  --text-hot: var(--pd-sun-900);
+
+  /**
+   * `--text-success` — alias que o Design System não publica, e cuja falta é o próprio defeito.
+   *
+   * `panel.css` escrevia `--pd-success-600` direto no delta das métricas. Funciona no tema
+   * claro (5,49:1 sobre `--surface-card`) e reprova no escuro (2,98:1), porque o protótipo
+   * não re-aponta a rampa de sucesso — ele nunca exercita verde sobre fundo escuro. Rampa
+   * fixa em componente é exatamente o erro que um alias existe para impedir.
+   *
+   * Nenhum valor novo: os dois lados apontam para degraus que já existem em
+   * `tokens/colors.css`.
+   */
+  --text-success: var(--pd-success-600);
+}
+
+/* A escolha explícita do leitor vence sempre — mesma estrutura de `dark.css`. */
+:root[data-theme="dark"] {
+  --text-success: var(--pd-success-100); /* 14,33:1 sobre --surface-card escuro */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --text-success: var(--pd-success-100);
+  }
+}

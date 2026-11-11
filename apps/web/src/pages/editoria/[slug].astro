@@ -1,0 +1,153 @@
+---
+import { MUNICIPALITIES } from "@parnaibadigital/api-client";
+import {
+  AdSlot,
+  Breadcrumb,
+  JobList,
+  NeighborhoodTagBar,
+  NewsCard,
+  Pagination,
+} from "@parnaibadigital/ui";
+
+import PortalLayout from "../../layouts/PortalLayout.astro";
+import {
+  categoryHref,
+  client,
+  neighborhoodHref,
+  newsHref,
+  placeLabelForNews,
+} from "../../lib/site";
+import { breadcrumbList, collectionPage, type Crumb } from "../../lib/seo/structured-data";
+
+/**
+ * T067 — listagem por editoria, com filtro e paginação por link real.
+ *
+ * O filtro de editorias é uma fileira de `<a href>`, não um `<select>` com script: assim a
+ * seleção tem endereço próprio, é compartilhável e sobrevive sem JavaScript (Princípio XI).
+ * Um `<select>` que navega por `onchange` produz zero URLs para o rastreador — e editoria é
+ * justamente a taxonomia que o Princípio II quer indexada.
+ *
+ * A paginação é gerada estaticamente. `contracts/routes.md` fala em `?page=`, mas saída
+ * estática (D-02) não distingue query string: `/editoria/x?page=2` devolveria o HTML da
+ * página 1. O endereço passa a ser `/editoria/x/2` — mesma semântica, servível por CDN.
+ */
+export async function getStaticPaths() {
+  const categories = await client.categories.list();
+  return categories.map((category) => ({ params: { slug: category.slug } }));
+}
+
+const { slug } = Astro.params;
+const category = await client.categories.findBySlug(slug ?? "");
+if (category === undefined) {
+  // Rota gerada por `getStaticPaths` nunca cai aqui. Se cair, o dado sumiu entre a
+  // geração e a renderização: reprovar a construção é o certo — um redirecionamento
+  // não é servível por saída estática e produziria uma página muda em produção.
+  throw new Error(`category inexistente em ${Astro.url.pathname} — dado fora de sincronia.`);
+}
+
+const categories = await client.categories.list();
+const result = await client.news.list({ categorySlug: category.slug, perPage: 12 });
+
+const items = await Promise.all(
+  result.data.map(async (article) => ({ article, place: await placeLabelForNews(article) })),
+);
+
+const jobs = await client.utilities.list("empregos");
+
+const neighborhoodLinks = (
+  await Promise.all(
+    MUNICIPALITIES.map(async (municipality) => {
+      const list = await client.geo.listNeighborhoods(municipality.ibgeCode);
+      return list.map((neighborhood) => ({
+        name: neighborhood.name,
+        href: neighborhoodHref(municipality, neighborhood),
+      }));
+    }),
+  )
+).flat();
+
+const path = categoryHref(category.slug);
+const crumbs: Crumb[] = [
+  { name: "Home", path: "/" },
+  { name: category.name, path },
+];
+
+const description = `Obras, serviços e decisões que mudam a rotina dos bairros na editoria ${category.name}. ${String(result.meta.total)} matérias nesta seleção.`;
+---
+
+<PortalLayout
+  meta={{ title: `${category.name} — notícias do litoral do Piauí`, description, path }}
+  schema={[collectionPage(category.name, description, path), breadcrumbList(crumbs)]}
+>
+  <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+  <header class="pd-listing__header">
+    <span class="pd-listing__kicker">Editoria</span>
+    <h1 class="pd-listing__title">{category.name}</h1>
+    <p class="pd-listing__lede">{description}</p>
+  </header>
+
+  <nav class="pd-filters" aria-label="Filtrar por editoria">
+    {
+      categories.map((entry) => (
+        <a
+          class="pd-filters__chip"
+          href={categoryHref(entry.slug)}
+          aria-current={entry.slug === category.slug ? "page" : undefined}
+        >
+          {entry.name}
+        </a>
+      ))
+    }
+  </nav>
+
+  <div class="pd-listing__grid">
+    <section aria-label={`Matérias de ${category.name}`}>
+      {
+        items.length === 0 ? (
+          <div class="pd-empty">
+            <h2 class="pd-empty__title">Nenhuma notícia nesta editoria hoje</h2>
+            <p class="pd-empty__text">
+              A curadoria varre o Diário Oficial e as fontes locais a cada 30 minutos. Assim que
+              algo novo entrar nesta editoria, aparece aqui.
+            </p>
+            <a class="pd-empty__action" href="/">
+              Ver todas as editorias
+            </a>
+          </div>
+        ) : (
+          <div class="pd-listing__cards">
+            {items.map(({ article, place }) => (
+              <NewsCard
+                headline={article.headline}
+                href={newsHref(article.slug)}
+                place={place}
+                standfirst={article.standfirst}
+                kicker={category.name}
+                kickerTone={article.tone}
+                curation={article.curation}
+                image={article.image}
+                headingLevel="h2"
+              />
+            ))}
+          </div>
+        )
+      }
+
+      <AdSlot format="inread" position="In-feed · após o 4º card" class="pd-listing__ad" />
+
+      <Pagination
+        page={result.meta.page}
+        totalPages={result.meta.totalPages}
+        hrefFor={(target) => (target === 1 ? path : `${path}/${String(target)}`)}
+        label={`Notícias de ${category.name}`}
+      />
+    </section>
+
+    <aside class="pd-listing__side" aria-label="Serviços">
+      <AdSlot format="rectangle" position="Sidebar da editoria" />
+      <NeighborhoodTagBar neighborhoods={neighborhoodLinks} title="Bairros cobertos" />
+      <JobList items={jobs.slice(0, 3)} totalLabel={`${String(jobs.length)} vagas`} />
+    </aside>
+  </div>
+</PortalLayout>

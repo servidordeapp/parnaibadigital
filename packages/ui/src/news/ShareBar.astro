@@ -1,0 +1,111 @@
+---
+import Button from "../core/Button.astro";
+import IconButton from "../core/IconButton.astro";
+
+/**
+ * Barra de compartilhamento. **WhatsApp primeiro** — o DS registra que é o canal dominante
+ * no público regional do Piauí, e a ordem aqui reflete uso real, não convenção de portal
+ * nacional.
+ *
+ * Tudo é `<a href>` com URL de compartilhamento montada em build: funciona sem JavaScript
+ * (Princípio XI) e não carrega nenhum SDK de rede social — que seria terceiro no caminho
+ * crítico (Princípio I) e rastreamento embutido (FR-038).
+ *
+ * **Duas substituições declaradas** contra o protótipo, ambas por causa do vocabulário
+ * fechado de ícones do DS (`readme.md`, seção ICONOGRAPHY): Telegram sai — não há glifo
+ * para ele e o DS proíbe SVG desenhado à mão —, e Facebook usa `external-link`. Trocar o
+ * vocabulário é pedido ao Design System, não decisão desta camada.
+ */
+interface Props {
+  /** URL absoluta da matéria — é o que vai no compartilhamento. */
+  url: string;
+  title: string;
+  label?: string | undefined;
+  compact?: boolean | undefined;
+  class?: string | undefined;
+}
+
+const {
+  url,
+  title,
+  label = "Compartilhe no seu grupo",
+  compact = false,
+  class: className,
+} = Astro.props;
+
+const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`;
+const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+---
+
+<div class:list={["pd-sharebar", className]} data-pd-sharebar>
+  {!compact && <span class="pd-sharebar__label">{label}</span>}
+
+  <Button variant="hot" size="sm" iconLeft="message-circle" href={whatsappUrl}>WhatsApp</Button>
+
+  <IconButton
+    icon="external-link"
+    label="Compartilhar no Facebook"
+    tone="brand"
+    size="sm"
+    href={facebookUrl}
+  />
+
+  {
+    /* Sem JavaScript o botão de copiar é o próprio endereço da matéria — clicar leva à
+     página, que é o comportamento útil. O script do componente (T063 em diante) apenas
+     substitui o clique por `navigator.clipboard`; o estado inicial já serve. */
+  }
+  <IconButton
+    icon="link-2"
+    label="Copiar link da matéria"
+    tone="brand"
+    size="sm"
+    href={url}
+    class="pd-sharebar__copy"
+  />
+</div>
+
+<script>
+  /**
+   * Enriquecimento, não requisito. Se este script não chegar, o botão continua sendo um
+   * link para a matéria — que é exatamente o que o Princípio XI pede.
+   */
+  const copyButtons = document.querySelectorAll<HTMLAnchorElement>(".pd-sharebar__copy");
+
+  for (const button of copyButtons) {
+    button.addEventListener("click", (event) => {
+      if (navigator.clipboard === undefined) return;
+
+      event.preventDefault();
+      void navigator.clipboard.writeText(button.href).then(() => {
+        button.setAttribute("data-pd-copied", "true");
+        window.setTimeout(() => {
+          button.removeAttribute("data-pd-copied");
+        }, 2000);
+      });
+    });
+  }
+</script>
+
+<style>
+  .pd-sharebar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-4) 0;
+    border-top: var(--border-hair) solid var(--border-subtle);
+    border-bottom: var(--border-hair) solid var(--border-subtle);
+  }
+
+  .pd-sharebar__label {
+    margin-right: var(--space-2);
+    font: var(--type-ui-sm);
+    color: var(--text-muted);
+  }
+
+  .pd-sharebar__copy[data-pd-copied] {
+    background: var(--pd-success-100);
+    color: var(--pd-success-600);
+  }
+</style>

@@ -1,0 +1,119 @@
+---
+import "@parnaibadigital/design-system";
+
+import { PRELOADED_FONTS } from "@parnaibadigital/design-system/fonts";
+import { THEME_INIT_SNIPPET } from "@parnaibadigital/ui";
+
+/**
+ * T043 / FR-009 / FR-014 — casca de toda superfície pública.
+ *
+ * Três responsabilidades, e só três: carregar o Design System uma vez, decidir o tema antes
+ * da primeira pintura e dar à página os marcos de acessibilidade (`lang`, salto para o
+ * conteúdo, `<main>` nomeado).
+ *
+ * O que este arquivo deliberadamente NÃO faz:
+ *   - canônica, Open Graph e Twitter Cards — `lib/seo/meta.ts` (T080), ligado aqui depois;
+ *   - JSON-LD — `StructuredData.astro` (T079), que recebe os mesmos dados da tela;
+ *   - cabeçalho e rodapé — `SiteHeader`/`SiteFooter` (T059).
+ * Cada um desses tem uma fonte de verdade própria; antecipá-los aqui criaria a segunda.
+ */
+interface Props {
+  title: string;
+  description: string;
+  /**
+   * `noindex,follow` para quem consome este layout **direto**, sem o `PortalLayout` — hoje,
+   * só a galeria de componentes. Quem passa pelo `PortalLayout` recebe a diretiva completa
+   * de `lib/seo/meta.ts` e não deve repassar esta, sob pena de duas tags `robots` na mesma
+   * `<head>`.
+   */
+  noindex?: boolean;
+  bodyClass?: string;
+}
+
+const { title, description, noindex = false, bodyClass } = Astro.props;
+
+/*
+ * `data-theme` é escrito pelo script inline abaixo antes da pintura; a ausência do atributo
+ * aqui é o padrão de quem nunca escolheu, e o `dark.css` cobre a preferência do sistema por
+ * media query.
+ *
+ * ATENÇÃO ao editar: `<html>` precisa ser o **primeiro nó do template**. Qualquer expressão
+ * antes dele — inclusive uma expressão `{ … }` contendo apenas um comentário — faz o Astro
+ * tratar o arquivo como fragmento e descartar `<html>`, `<head>` e `<body>` na saída. O sintoma é silencioso:
+ * o navegador remonta os elementos que faltam, a página parece certa, e o documento entregue
+ * fica sem `lang` — violação de WCAG 3.1.1 em toda superfície de uma vez. Por isso este
+ * comentário vive no frontmatter.
+ */
+---
+
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    {
+      /* SC-005 — as faces `latin` buscadas junto com o CSS, não depois dele. Sem isto o
+       texto pinta na fonte de recurso e reflui quando a face real chega, e o deslocamento
+       sozinho consome o dobro do orçamento de CLS. Ver `design-system/src/fonts.ts`. */
+    }
+    {
+      PRELOADED_FONTS.map((href) => (
+        <link rel="preload" href={href} as="font" type="font/woff2" crossorigin />
+      ))
+    }
+    {noindex && <meta name="robots" content="noindex,follow" />}
+
+    {
+      /* D-07 — precisa ser síncrono e o primeiro script do documento: qualquer coisa antes
+       dele pinta no tema errado e produz o flash que ele existe para evitar. */
+    }
+    <script is:inline set:html={THEME_INIT_SNIPPET} />
+
+    <slot name="head" />
+  </head>
+
+  <body class={bodyClass}>
+    {
+      /* Primeiro foco tabulável da página — WCAG 2.4.1, e o que evita percorrer o cabeçalho
+       inteiro a cada navegação para quem usa teclado. */
+    }
+    <a class="pd-skip-link" href="#conteudo">Ir para o conteúdo</a>
+
+    <slot name="header" />
+
+    <main id="conteudo" tabindex="-1">
+      <slot />
+    </main>
+
+    <slot name="footer" />
+  </body>
+</html>
+
+<style is:global>
+  .pd-skip-link {
+    position: absolute;
+    left: var(--space-3);
+    z-index: 999;
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-sm);
+    background: var(--surface-brand);
+    font: var(--type-ui);
+    color: var(--text-inverse);
+
+    /* Fora da tela até receber foco — não é `display: none`, que o tiraria da ordem de
+       tabulação e o tornaria inalcançável justamente por quem depende dele. */
+    transform: translateY(-200%);
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .pd-skip-link:focus-visible {
+    transform: translateY(var(--space-3));
+  }
+
+  /* O alvo do salto recebe foco por script do navegador; o anel ali não comunica nada. */
+  main:focus {
+    outline: none;
+  }
+</style>

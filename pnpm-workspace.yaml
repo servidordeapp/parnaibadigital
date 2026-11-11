@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Astro e Tailwind 4 trazem binários que exigem build script aprovado no pnpm 10+.
+allowBuilds:
+  esbuild: true
+  sharp: true

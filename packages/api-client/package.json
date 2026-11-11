@@ -1,0 +1,26 @@
+{
+  "name": "@parnaibadigital/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Portas de repositório, transportes intercambiáveis e dados demonstrativos (D-12).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ports": "./src/ports/index.ts",
+    "./data/municipalities": "./src/data/municipalities.ts",
+    "./mock/data/*": "./src/mock/data/*"
+  },
+  "files": [
+    "src",
+    "scripts"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "validate:mocks": "tsx scripts/validate-mocks.ts"
+  },
+  "dependencies": {
+    "@parnaibadigital/types": "workspace:*",
+    "@parnaibadigital/validation": "workspace:*"
+  }
+}

@@ -1,0 +1,204 @@
+---
+import { MUNICIPALITIES } from "@parnaibadigital/api-client";
+import {
+  AdSlot,
+  Breadcrumb,
+  EventList,
+  NeighborhoodTagBar,
+  NewsCard,
+  PharmacyList,
+  SectionHeading,
+  WeatherStrip,
+} from "@parnaibadigital/ui";
+
+import PortalLayout from "../../layouts/PortalLayout.astro";
+import {
+  client,
+  municipalityHref,
+  neighborhoodHref,
+  newsHref,
+  placeLabelForNews,
+} from "../../lib/site";
+import {
+  breadcrumbList,
+  collectionPage,
+  place as placeSchema,
+  type Crumb,
+} from "../../lib/seo/structured-data";
+
+/**
+ * T068 / SC-010 — o hub de município.
+ *
+ * `getStaticPaths()` lê o **registro** (`MUNICIPALITIES`), e é isso que torna verdadeira a
+ * promessa de que acrescentar um município é editar um arquivo e nada mais. Se esta linha
+ * listasse os cinco slugs à mão, o sexto município exigiria uma varredura pelo repositório —
+ * e alguém esqueceria o RSS, ou o sitemap, ou esta rota.
+ */
+export function getStaticPaths() {
+  return MUNICIPALITIES.map((municipality) => ({ params: { municipio: municipality.slug } }));
+}
+
+const { municipio } = Astro.params;
+const municipality = await client.geo.findMunicipalityBySlug(municipio ?? "");
+if (municipality === undefined) {
+  // Rota gerada por `getStaticPaths` nunca cai aqui. Se cair, o dado sumiu entre a
+  // geração e a renderização: reprovar a construção é o certo — um redirecionamento
+  // não é servível por saída estática e produziria uma página muda em produção.
+  throw new Error(`municipality inexistente em ${Astro.url.pathname} — dado fora de sincronia.`);
+}
+
+const neighborhoods = await client.geo.listNeighborhoods(municipality.ibgeCode);
+const result = await client.news.list({
+  municipalityIbgeCode: municipality.ibgeCode,
+  perPage: 12,
+});
+const items = await Promise.all(
+  result.data.map(async (article) => ({ article, place: await placeLabelForNews(article) })),
+);
+
+const events = await client.events.list(municipality.ibgeCode);
+
+const companies = (
+  await Promise.all(neighborhoods.map((neighborhood) => client.companies.list(neighborhood.id)))
+).flat();
+
+const path = municipalityHref(municipality);
+const crumbs: Crumb[] = [
+  { name: "Home", path: "/" },
+  { name: municipality.name, path },
+];
+
+const description = `Notícias, serviços e agenda de ${municipality.name} (${municipality.state}), bairro a bairro. ${String(neighborhoods.length)} bairros cobertos diariamente pela curadoria.`;
+---
+
+<PortalLayout
+  meta={{ title: `${municipality.name} — notícias e serviços`, description, path }}
+  schema={[
+    placeSchema(municipality),
+    collectionPage(municipality.name, description, path),
+    breadcrumbList(crumbs),
+  ]}
+>
+  <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+  <header class="pd-city__hero">
+    <span class="pd-listing__kicker">Litoral do Piauí · {String(result.meta.total)} notícias</span>
+    <h1 class="pd-city__title">{municipality.name}</h1>
+    <p class="pd-city__lede">{description}</p>
+  </header>
+
+  <div class="pd-listing__grid">
+    <section aria-label={`Últimas notícias de ${municipality.name}`}>
+      <SectionHeading>Últimas notícias da cidade</SectionHeading>
+
+      {
+        items.length === 0 ? (
+          <div class="pd-empty">
+            <h3 class="pd-empty__title">Ainda não há matéria publicada para {municipality.name}</h3>
+            <p class="pd-empty__text">
+              A cobertura deste município já está no registro; assim que a curadoria encontrar um
+              documento ou uma fonte local, a matéria aparece aqui.
+            </p>
+            <a class="pd-empty__action" href="/">
+              Voltar para a home
+            </a>
+          </div>
+        ) : (
+          <div class="pd-listing__rows">
+            {items.map(({ article, place }) => (
+              <NewsCard
+                layout="row"
+                headline={article.headline}
+                href={newsHref(article.slug)}
+                place={place}
+                standfirst={article.standfirst}
+                kickerTone={article.tone}
+                curation={article.curation}
+                image={article.image}
+              />
+            ))}
+          </div>
+        )
+      }
+
+      <AdSlot
+        format="inread"
+        position={`Publicidade local · ${municipality.name}`}
+        note="Formato vendido diretamente para anunciantes da cidade"
+        class="pd-listing__ad"
+      />
+
+      {
+        companies.length > 0 && (
+          <section aria-label={`Empresas de ${municipality.name}`}>
+            <SectionHeading accent="blue" linkLabel="Guia completo" href="/empresas">
+              Empresas de {municipality.name}
+            </SectionHeading>
+            <ul class="pd-list-reset">
+              {companies.slice(0, 4).map((company) => (
+                <li class="pd-item">
+                  <h3 class="pd-item__title">{company.name}</h3>
+                  <p class="pd-item__meta">
+                    {neighborhoods.find((entry) => entry.id === company.neighborhoodId)?.name ?? ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+    </section>
+
+    <aside class="pd-listing__side" aria-label="Serviços do município">
+      <WeatherStrip temperature="32°C" condition="Sol com nuvens" icon="sun" humidity="64%" />
+
+      <NeighborhoodTagBar
+        title={`Bairros de ${municipality.name}`}
+        neighborhoods={neighborhoods.map((neighborhood) => ({
+          name: neighborhood.name,
+          href: neighborhoodHref(municipality, neighborhood),
+        }))}
+      />
+
+      <EventList items={events} title={`Agenda de ${municipality.name}`} />
+
+      <PharmacyList />
+
+      <AdSlot format="rectangle" position="Publicidade local · sidebar" />
+    </aside>
+  </div>
+</PortalLayout>
+
+<style>
+  .pd-city__hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: var(--space-4) 0 var(--space-7);
+    padding: var(--space-8) var(--space-7);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(
+      140deg,
+      var(--pd-blue-800),
+      var(--pd-blue-600) 58%,
+      var(--pd-sun-600)
+    );
+  }
+
+  .pd-city__title {
+    margin: 0;
+    font: var(--type-hero);
+    color: var(--text-inverse);
+  }
+
+  .pd-city__lede {
+    max-width: 56ch;
+    margin: 0;
+    font: var(--type-body-sm);
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-city__hero .pd-listing__kicker {
+    color: var(--pd-sun-300);
+  }
+</style>

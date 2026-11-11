@@ -1,0 +1,152 @@
+---
+import { AdSlot, Badge, Breadcrumb, Button, Icon } from "@parnaibadigital/ui";
+
+import PortalLayout from "../layouts/PortalLayout.astro";
+import { client, dateFormat, newsHref } from "../lib/site";
+import { breadcrumbList, collectionPage, type Crumb } from "../lib/seo/structured-data";
+
+/**
+ * T073 — Diário Oficial descomplicado.
+ *
+ * A regra que domina esta tela: **documento sem matéria associada é representado como tal**.
+ * `generatedNewsSlug` ausente é estado legítimo (Princípio V) — nem todo ato oficial vira
+ * texto, e um documento em `fila_ia` ainda **não pode** ter matéria, porque não passou pela
+ * revisão humana. Fabricar um link aqui representaria uma etapa que não aconteceu.
+ *
+ * Cada card expõe o link para o documento original. Um resumo gerado por automação sem o
+ * original ao lado é afirmação sem prova — e o produto inteiro se apoia no oposto.
+ */
+const documents = await client.gazette.list();
+
+const STATUS_LABELS = {
+  fila_ia: { label: "Fila de IA", tone: "brand" },
+  em_revisao: { label: "Em revisão", tone: "hot" },
+  publicado: { label: "Publicado", tone: "utility" },
+  arquivado: { label: "Arquivado", tone: "neutral" },
+} as const;
+
+const path = "/diario-oficial";
+const crumbs: Crumb[] = [
+  { name: "Home", path: "/" },
+  { name: "Diário Oficial", path },
+];
+
+const description =
+  "Cada documento publicado pelos municípios do litoral e pelo Governo do Piauí vira um resumo em linguagem simples, com link para o arquivo original e para a matéria relacionada.";
+---
+
+<PortalLayout
+  meta={{ title: "Diário Oficial descomplicado", description, path }}
+  schema={[collectionPage("Diário Oficial", description, path), breadcrumbList(crumbs)]}
+  activeSection="/diario-oficial"
+>
+  <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+  <header class="pd-listing__header">
+    <span class="pd-listing__kicker">
+      <Icon name="sparkles" size="xs" /> Resumo gerado por IA · revisado por editor
+    </span>
+    <h1 class="pd-listing__title">Diário Oficial descomplicado</h1>
+    <p class="pd-listing__lede">{description}</p>
+  </header>
+
+  <div class="pd-listing__grid">
+    <section aria-label="Documentos oficiais">
+      {
+        documents.length === 0 ? (
+          <div class="pd-empty">
+            <h2 class="pd-empty__title">Nenhum documento na varredura de hoje</h2>
+            <p class="pd-empty__text">
+              A leitura dos diários acontece a cada 30 minutos. Documentos novos aparecem aqui assim
+              que forem resumidos e revisados.
+            </p>
+            <a class="pd-empty__action" href="/">
+              Voltar para a home
+            </a>
+          </div>
+        ) : (
+          <ul class="pd-list-reset">
+            {documents.map((document) => (
+              <li class="pd-item pd-gazette">
+                <div class="pd-item__head">
+                  <Badge tone={STATUS_LABELS[document.status].tone}>
+                    {STATUS_LABELS[document.status].label}
+                  </Badge>
+                  <span class="pd-item__value">{document.number}</span>
+                  <span class="pd-item__meta">
+                    {document.agency}
+                    {document.department === undefined ? "" : ` · ${document.department}`}
+                  </span>
+                  <time class="pd-item__meta pd-gazette__date" datetime={document.publishedAt}>
+                    {dateFormat.format(new Date(document.publishedAt))}
+                  </time>
+                </div>
+
+                <span class="pd-gazette__ai">
+                  <Icon name="sparkles" size="xs" /> Resumo da IA
+                </span>
+
+                <p class="pd-item__text">{document.summary}</p>
+
+                <div class="pd-item__actions">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    iconRight="external-link"
+                    href={document.sourceRef.sourceUrl}
+                  >
+                    Abrir documento oficial
+                  </Button>
+
+                  {document.generatedNewsSlug === undefined ? (
+                    /* Sem matéria associada — dito com todas as letras, jamais inferido. */
+                    <span class="pd-gazette__orphan">
+                      Este documento ainda não gerou matéria.
+                      {document.status === "fila_ia"
+                        ? " Está na fila e aguarda revisão humana."
+                        : ""}
+                    </span>
+                  ) : (
+                    <a class="pd-gazette__link" href={newsHref(document.generatedNewsSlug)}>
+                      Ler a matéria relacionada
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+
+    <aside class="pd-listing__side" aria-label="Publicidade">
+      <AdSlot format="rectangle" position="Sidebar do Diário Oficial" />
+    </aside>
+  </div>
+</PortalLayout>
+
+<style>
+  .pd-gazette__date {
+    margin-left: auto;
+  }
+
+  .pd-gazette__ai {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    font: var(--type-kicker);
+    color: var(--text-brand);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-gazette__orphan {
+    font: var(--type-meta);
+    color: var(--text-faint);
+  }
+
+  .pd-gazette__link {
+    font: var(--type-ui-sm);
+    color: var(--text-link);
+  }
+</style>

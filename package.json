@@ -1,0 +1,50 @@
+{
+  "name": "parnaibadigital",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @parnaibadigital/web dev",
+    "dev:admin": "pnpm --filter @parnaibadigital/admin dev",
+    "build": "pnpm -r --filter \"./apps/*\" build",
+    "lint": "eslint . && stylelint \"**/*.css\" && prettier --check .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "vitest run --project design-system --project types --project validation --project api-client --project ui --project scripts --project docs",
+    "test:seo": "vitest run --project seo",
+    "test:a11y": "playwright test tests/a11y",
+    "test:e2e": "playwright test tests/e2e",
+    "shots": "playwright test tests/shots --project=chromium-360 --project=chromium-1280",
+    "test:perf": "lhci autorun --config=lighthouserc.json",
+    "types:generate": "pnpm --filter @parnaibadigital/types generate",
+    "check:tokens": "tsx scripts/check-tokens.ts",
+    "check:ds-integrity": "tsx scripts/check-ds-integrity.ts",
+    "validate:mocks": "pnpm --filter @parnaibadigital/api-client validate:mocks",
+    "verify": "pnpm lint && pnpm typecheck && pnpm check:tokens && pnpm check:ds-integrity && pnpm validate:mocks && pnpm test && pnpm build && pnpm test:seo && pnpm test:a11y && pnpm test:e2e && pnpm test:perf"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@eslint/js": "^9.39.0",
+    "@lhci/cli": "^0.15.1",
+    "@parnaibadigital/api-client": "workspace:*",
+    "@parnaibadigital/types": "workspace:*",
+    "@parnaibadigital/ui": "workspace:*",
+    "@playwright/test": "^1.56.1",
+    "eslint": "^9.39.0",
+    "eslint-plugin-astro": "^1.3.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2",
+    "prettier-plugin-astro": "^0.14.1",
+    "stylelint": "^16.26.0",
+    "stylelint-config-standard": "^40.0.0",
+    "stylelint-declaration-strict-value": "^1.10.11",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vitest": "^3.2.4"
+  }
+}

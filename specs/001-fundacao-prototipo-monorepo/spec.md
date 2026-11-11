@@ -23,7 +23,7 @@ Esta especificação foi escrita **após** inspeção do repositório e leitura 
 **Projeto de design** (`claude.ai/design/p/219a9ccf-…`, "ParnaíbaDigital: Protótipo completo", editável):
 
 - `ParnaibaDigital.dc.html` — 232 KB, protótipo navegável único com **26 telas** implementadas.
-- Design System `parna-badigital-design-system-fe257784-…` — 7 arquivos de token, `styles.css`, `_ds_bundle.js`, `_ds_manifest.json`, `readme.md`, **31 componentes** em 7 grupos, 23 cards de especímen.
+- Design System `parna-badigital-design-system-fe257784-…` — 7 arquivos de token, `styles.css`, `_ds_bundle.js`, `_ds_manifest.json`, `readme.md`, **34 componentes** em 7 grupos, 23 cards de especímen.
 
 **Divergências entre o prompt de entrada e a realidade apurada** (a realidade prevalece):
 
@@ -132,7 +132,7 @@ Um mantenedor que chega ao projeto lê a documentação arquitetural e entende, 
 - **FR-003**: O sistema MUST expor os tokens do Design System como **fonte única** consumida por todas as aplicações. Nenhum valor de cor, espaçamento, tipografia, elevação ou movimento é duplicado entre pacotes ou aplicações.
 - **FR-004**: O sistema MUST reprovar automaticamente qualquer valor literal de cor, espaçamento ou tipografia fora dos tokens, indicando arquivo, linha e token correspondente.
 - **FR-005**: O sistema MUST publicar um inventário navegável dos componentes do Design System, com variantes, estados (repouso, hover, press, foco, desabilitado, selecionado) e exemplo renderizado em ambos os temas.
-- **FR-006**: O sistema MUST reproduzir os 31 componentes publicados pelo Design System, agrupados como na origem: `core` (Button, IconButton, Icon, Input, Select, Checkbox, Tag, Badge, Card, PhotoFrame), `brand` (Wordmark), `news` (HeroStory, NewsCard, NewsListItem, NeighborhoodTagBar, SectionHeading, CurationStamp, RegionalContextBox, AttributionFooter, ShareBar), `navigation` (SiteHeader, WeatherStrip, Breadcrumb, Tabs, Pagination, SiteFooter), `widgets` (WidgetCard, PharmacyList, JobList, EventList), `tourism` (LodgingCard, DestinationCard, LodgingList), `ads` (AdSlot).
+- **FR-006**: O sistema MUST reproduzir os 34 componentes publicados pelo Design System, agrupados como na origem: `core` (Button, IconButton, Icon, Input, Select, Checkbox, Tag, Badge, Card, PhotoFrame), `brand` (Wordmark), `news` (HeroStory, NewsCard, NewsListItem, NeighborhoodTagBar, SectionHeading, CurationStamp, RegionalContextBox, AttributionFooter, ShareBar), `navigation` (SiteHeader, WeatherStrip, Breadcrumb, Tabs, Pagination, SiteFooter), `widgets` (WidgetCard, PharmacyList, JobList, EventList), `tourism` (LodgingCard, DestinationCard, LodgingList), `ads` (AdSlot).
 - **FR-007**: O sistema MUST implementar como componentes reutilizáveis os padrões que o protótipo usa mas o Design System ainda não publica — modal de índice/comando, gaveta de navegação móvel, aviso temporário (toast), esqueleto de carregamento e tabela de dados do admin — e MUST registrá-los no inventário como adições, com justificativa.
 - **FR-008**: O sistema MUST NOT introduzir componente novo quando um equivalente já existe no Design System. Duplicação de componente é defeito.
 - **FR-009**: O sistema MUST suportar os temas claro e escuro em **todo** componente e **toda** tela, incluindo o admin, com a mesma paleta declarada pelo protótipo.

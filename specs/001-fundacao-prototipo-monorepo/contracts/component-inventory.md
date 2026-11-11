@@ -6,12 +6,12 @@ Contrato interno consumido pelo portal e pelo painel. **Uma definição por comp
 (SC-012). Todo componente é `.astro`, renderiza no servidor e funciona nos dois temas
 (FR-009). Nenhum componente contém valor literal de cor, espaçamento ou tipografia (FR-004).
 
-Origem dos 31 componentes: `_ds_manifest.json` do Design System importado, grupos preservados
+Origem dos 34 componentes: `_ds_manifest.json` do Design System importado, grupos preservados
 como na origem (FR-006).
 
 ---
 
-## Publicados pelo Design System — 31 componentes
+## Publicados pelo Design System — 34 componentes
 
 | Grupo | Componente | Caminho em `packages/ui` | Consumidores |
 |---|---|---|---|

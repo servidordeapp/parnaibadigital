@@ -1,0 +1,168 @@
+---
+import type { PaletteDestination } from "./types";
+
+import Icon from "../core/Icon.astro";
+
+/**
+ * **Adição justificada** (FR-007) — o índice de telas por `Ctrl/Cmd+K` que o protótipo usa
+ * em todas as superfícies. O DS não publica equivalente.
+ *
+ * Construído sobre `<dialog>`: foco preso, `Esc` para fechar e semântica de modal vêm do
+ * elemento, não de código nosso. Reimplementar isso à mão custaria ~80 linhas e erraria
+ * algum detalhe de foco — que é justamente onde componente de sobreposição costuma falhar
+ * em acessibilidade.
+ *
+ * A lista é de `<a href>` reais. Sem JavaScript o diálogo nunca abre, e é aceitável: o
+ * atalho é caminho **rápido** para destinos que a navegação normal já oferece (Princípio XI
+ * exige que a funcionalidade essencial não dependa de script — não que todo conforto exista
+ * sem ele).
+ */
+interface Props {
+  destinations: readonly PaletteDestination[];
+  class?: string | undefined;
+}
+
+const { destinations, class: className } = Astro.props;
+
+const groups = [...new Set(destinations.map((destination) => destination.group))];
+---
+
+<dialog class:list={["pd-palette", className]} data-pd-palette aria-label="Ir para">
+  <form method="dialog" class="pd-palette__header">
+    <Icon name="search" size="sm" />
+    <input
+      class="pd-palette__input"
+      type="search"
+      placeholder="Ir para uma tela…"
+      aria-label="Filtrar destinos"
+      data-pd-palette-input
+    />
+    <button class="pd-palette__close" type="submit" aria-label="Fechar">Esc</button>
+  </form>
+
+  <div class="pd-palette__body">
+    {
+      groups.map((group) => (
+        <section class="pd-palette__group">
+          <h2 class="pd-palette__group-title">{group}</h2>
+          <ul class="pd-palette__list">
+            {destinations
+              .filter((destination) => destination.group === group)
+              .map((destination) => (
+                <li>
+                  <a class="pd-palette__item" href={destination.href} data-pd-palette-item>
+                    {destination.label}
+                    <Icon name="chevron-right" size="xs" />
+                  </a>
+                </li>
+              ))}
+          </ul>
+        </section>
+      ))
+    }
+
+    <p class="pd-palette__empty" data-pd-palette-empty hidden role="status">
+      Nenhuma tela corresponde ao que você digitou.
+    </p>
+  </div>
+</dialog>
+
+<script>
+  import { initCommandPalette } from "./command-palette";
+
+  initCommandPalette();
+</script>
+
+<style>
+  .pd-palette {
+    /* largura do índice de comandos (adição justificada, T063). Pedido de token aberto ao
+       projeto de design junto com o componente.
+       check-tokens-disable-next-line */
+    width: min(560px, 92vw);
+    padding: 0;
+    border: var(--border-hair) solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-4);
+    color: var(--text-body);
+  }
+
+  .pd-palette::backdrop {
+    background: var(--scrim-modal);
+  }
+
+  .pd-palette__header {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-5);
+    border-bottom: var(--border-hair) solid var(--border-subtle);
+    color: var(--text-faint);
+  }
+
+  .pd-palette__input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font: var(--type-body);
+    color: var(--text-strong);
+  }
+
+  .pd-palette__input:focus-visible {
+    outline: none;
+  }
+
+  .pd-palette__close {
+    padding: var(--space-1) var(--space-3);
+    border: var(--border-hair) solid var(--border-default);
+    border-radius: var(--radius-xs);
+    background: var(--surface-subtle);
+    font: var(--type-kicker);
+    color: var(--text-faint);
+    cursor: pointer;
+  }
+
+  .pd-palette__body {
+    max-height: 60vh;
+    padding: var(--space-4) var(--space-5) var(--space-5);
+    overflow-y: auto;
+  }
+
+  .pd-palette__group-title {
+    margin: var(--space-4) 0 var(--space-2);
+    font: var(--type-kicker);
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-palette__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-palette__item {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--tap-min);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font: var(--type-ui);
+    color: var(--text-strong);
+  }
+
+  .pd-palette__item:hover,
+  .pd-palette__item:focus-visible {
+    background: var(--surface-subtle);
+    color: var(--text-brand);
+  }
+
+  .pd-palette__empty {
+    margin: var(--space-5) 0 0;
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+</style>

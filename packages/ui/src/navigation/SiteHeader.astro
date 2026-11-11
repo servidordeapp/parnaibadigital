@@ -1,0 +1,429 @@
+---
+import type { HeaderCity, HeaderSection, UrgentHeadline } from "./types";
+
+import Button from "../core/Button.astro";
+import Icon from "../core/Icon.astro";
+import Tag from "../core/Tag.astro";
+import Wordmark from "../brand/Wordmark.astro";
+import NavDrawer from "../overlay/NavDrawer.astro";
+
+/**
+ * Cabeçalho do portal: quatro faixas, na ordem do protótipo.
+ *
+ *   1. barra de serviço — data, selo de curadoria, tempo, acesso ao painel, tema
+ *   2. cabeçalho fixo de 64px — wordmark, navegação, busca, newsletter
+ *   3. faixa urgente cor-de-sol — só quando existe matéria urgente
+ *   4. barra de cidades — os municípios do registro
+ *
+ * A navegação inteira é `<a href>`. Isso não é preferência de estilo: um menu que troca de
+ * tela por manipulador de evento não é rastreável, não abre em nova aba e desaparece sem
+ * JavaScript — três falhas que o Princípio XI trata como bloqueantes, não como detalhe.
+ *
+ * O componente **não decide** quais seções existem nem qual está ativa (FR-026): recebe a
+ * lista pronta. É o que permite ao painel e ao portal usarem a mesma definição sem que uma
+ * regra de rota vaze para dentro de `packages/ui`.
+ */
+interface Props {
+  sections: readonly HeaderSection[];
+  cities?: readonly HeaderCity[] | undefined;
+  urgent?: UrgentHeadline | undefined;
+  /** `true` na home: lá o wordmark é o `h1` do documento. */
+  isHome?: boolean | undefined;
+  /** Temperatura já formatada pela tela — o componente não converte nem decide unidade. */
+  weatherLabel?: string | undefined;
+  class?: string | undefined;
+}
+
+const {
+  sections,
+  cities = [],
+  urgent,
+  isHome = false,
+  weatherLabel,
+  class: className,
+} = Astro.props;
+
+const today = new Intl.DateTimeFormat("pt-BR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+}).format(new Date());
+
+const urgentMinutes =
+  urgent === undefined
+    ? 0
+    : Math.max(0, Math.round((Date.now() - Date.parse(urgent.publishedAt)) / 60_000));
+---
+
+<div class:list={["pd-header", className]}>
+  <div class="pd-header__utility">
+    <div class="pd-header__inner">
+      <span class="pd-header__date">{today}</span>
+
+      <span class="pd-header__curation">
+        <span class="pd-header__pulse" aria-hidden="true"></span>
+        Curadoria Inteligente
+      </span>
+
+      <div class="pd-header__utility-end">
+        {weatherLabel !== undefined && <span class="pd-header__weather">{weatherLabel}</span>}
+
+        <a class="pd-header__admin" href="/admin">Painel administrativo</a>
+
+        {
+          /* Entregue invisível, não ausente. Sem JavaScript o alternador não teria efeito, e
+           um controle que não faz nada é pior que a ausência dele — mas escondê-lo com o
+           atributo `hidden` o tirava do fluxo, e `theme-toggle.ts` o devolvia ao fluxo
+           depois da primeira pintura: a faixa de utilidade saltava de 59px para 115px em
+           360px e empurrava a página inteira. Era a origem de ~0,086 de CLS em TODA
+           superfície, contra um orçamento de 0,05 (SC-005).
+
+           `visibility: hidden` mantém a caixa reservada — o layout é idêntico com e sem
+           JavaScript, como no protótipo, onde o alternador está sempre presente — e ainda
+           assim o remove da árvore de acessibilidade e da ordem de tabulação, que é o que a
+           regra acima exige. `theme-toggle.ts` troca o estado do atributo. */
+        }
+        <button
+          class="pd-header__theme"
+          type="button"
+          data-pd-theme-toggle="pending"
+          aria-label="Alternar tema"
+          aria-pressed="false"
+        >
+          Tema
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <header class="pd-header__bar">
+    <div class="pd-header__inner pd-header__inner--main">
+      <Wordmark href="/" onDark as={isHome ? "h1" : "span"} />
+
+      <nav class="pd-header__nav" aria-label="Seções do portal">
+        <ul class="pd-header__nav-list">
+          {
+            sections.map((section) => (
+              <li>
+                <a
+                  class:list={["pd-header__nav-link", section.active && "is-active"]}
+                  href={section.href}
+                  aria-current={section.active === true ? "page" : undefined}
+                >
+                  {section.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <div class="pd-header__actions">
+        <a class="pd-header__search" href="/busca">
+          <Icon name="search" size="sm" />
+          <span class="pd-header__search-label">Buscar em Parnaíba…</span>
+          <kbd class="pd-header__shortcut">Ctrl K</kbd>
+        </a>
+
+        <Button variant="hot" size="sm" href="/newsletter" class="pd-header__newsletter">
+          Newsletter
+        </Button>
+
+        <NavDrawer sections={sections} cities={cities} />
+      </div>
+    </div>
+  </header>
+
+  {
+    urgent !== undefined && (
+      <div class="pd-header__urgent">
+        <div class="pd-header__inner">
+          <span class="pd-header__urgent-badge">
+            <span class="pd-header__pulse pd-header__pulse--urgent" aria-hidden="true" />
+            Urgente
+          </span>
+          <a class="pd-header__urgent-link" href={urgent.href}>
+            {urgent.headline}
+          </a>
+          <time class="pd-header__urgent-time" datetime={urgent.publishedAt}>
+            há {urgentMinutes} min
+          </time>
+        </div>
+      </div>
+    )
+  }
+
+  {
+    cities.length > 0 && (
+      <nav class="pd-header__cities" aria-label="Municípios cobertos">
+        <div class="pd-header__inner">
+          <span class="pd-header__cities-label">Cidades</span>
+          <ul class="pd-header__cities-list">
+            {cities.map((city) => (
+              <li>
+                <Tag href={city.href} size="sm" count={city.count}>
+                  {city.name}
+                </Tag>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </nav>
+    )
+  }
+</div>
+
+<script>
+  import { initThemeToggle } from "../theme/theme-toggle";
+
+  initThemeToggle();
+</script>
+
+<style>
+  .pd-header__inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    align-items: center;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: var(--space-3) var(--container-gutter);
+  }
+
+  /* ——— 1. Barra de serviço ——— */
+
+  .pd-header__utility {
+    background: var(--surface-header-bar);
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-header__date {
+    font: var(--type-meta);
+
+    /* A data completa é longa em pt-BR; em 360px ela empurraria o resto da faixa. */
+    text-transform: capitalize;
+  }
+
+  .pd-header__curation {
+    display: inline-flex;
+    gap: var(--space-3);
+    align-items: center;
+    font: var(--type-meta);
+    color: var(--pd-sun-300);
+  }
+
+  .pd-header__pulse {
+    width: var(--space-3);
+    height: var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--pd-sun-500);
+    /* 1,6s é a cadência do protótipo. Expressa como múltiplo de `--dur-slow` porque o DS
+       não publica token de duração ambiente — e um literal em ms voltaria a ser decisão
+       visual solta (FR-004). */
+    animation: pd-pulse calc(var(--dur-slow) * 5) var(--ease-in-out) infinite;
+  }
+
+  .pd-header__pulse--urgent {
+    background: var(--pd-urgent-600);
+    animation-duration: calc(var(--dur-base) * 6);
+  }
+
+  .pd-header__utility-end {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .pd-header__weather {
+    font: var(--type-data);
+    color: var(--text-inverse);
+  }
+
+  .pd-header__admin,
+  .pd-header__theme {
+    font: var(--type-meta);
+    color: var(--text-inverse-muted);
+  }
+
+  /* Reserva a caixa antes de o script existir. Ver o comentário no elemento: trocar isto por
+     `hidden` reintroduz o deslocamento de layout que custava 0,086 de CLS. */
+  .pd-header__theme[data-pd-theme-toggle="pending"] {
+    visibility: hidden;
+  }
+
+  .pd-header__theme {
+    min-height: var(--tap-min);
+    padding: var(--space-1) var(--space-4);
+    border: var(--border-hair) solid rgb(255 255 255 / 24%); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- transparência sobre chrome azul, declarada no readme do DS */
+    border-radius: var(--radius-pill);
+    background: transparent;
+    font: var(--type-kicker);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    cursor: pointer;
+  }
+
+  /* ——— 2. Cabeçalho fixo ——— */
+
+  .pd-header__bar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--surface-header);
+    box-shadow: var(--shadow-3);
+  }
+
+  .pd-header__inner--main {
+    flex-wrap: nowrap;
+    gap: var(--space-6);
+    min-height: var(--header-height);
+    padding-block: var(--space-0);
+  }
+
+  .pd-header__nav {
+    display: none;
+  }
+
+  .pd-header__nav-list {
+    display: flex;
+    gap: var(--space-1);
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-header__nav-link {
+    display: block;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: var(--border-accent) solid transparent;
+    font: var(--type-ui);
+    color: var(--text-inverse);
+    white-space: nowrap;
+    transition: var(--transition-interactive);
+  }
+
+  /* Sublinhado de 3px cor-de-sol marca a seção ativa — o realce do protótipo. */
+  .pd-header__nav-link.is-active {
+    border-bottom-color: var(--pd-sun-500);
+    color: var(--pd-sun-300);
+  }
+
+  .pd-header__actions {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .pd-header__search {
+    display: none;
+    gap: var(--space-3);
+    align-items: center;
+    min-height: var(--space-9);
+    padding: 0 var(--space-4);
+    border: var(--border-hair) solid rgb(255 255 255 / 18%); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- transparência sobre chrome azul, declarada no readme do DS */
+    border-radius: var(--radius-sm);
+    background: rgb(
+      255 255 255 / 10%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- par do valor acima, mesma origem */
+    font: var(--type-body-sm);
+    color: var(--text-inverse-muted);
+  }
+
+  .pd-header__shortcut {
+    margin-left: var(--space-5);
+    font: var(--type-kicker);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  .pd-header__newsletter {
+    display: none;
+  }
+
+  /* ——— 3. Faixa urgente ——— */
+
+  .pd-header__urgent {
+    background: var(--pd-sun-500);
+  }
+
+  .pd-header__urgent-badge {
+    display: inline-flex;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-xs);
+    background: rgb(
+      0 0 0 / 14%
+    ); /* stylelint-disable-line scale-unlimited/declaration-strict-value -- véu sobre a faixa cor-de-sol, valor do protótipo */
+    font: var(--type-kicker);
+    color: var(--pd-ink-950);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-header__urgent-link {
+    font: var(--type-ui);
+    color: var(--pd-ink-950);
+    letter-spacing: var(--tracking-snug);
+  }
+
+  .pd-header__urgent-time {
+    margin-left: auto;
+    font: var(--type-meta);
+    /* Correção de contraste (Princípio III, SC-004): `--pd-sun-900` sobre `--surface-hot` rendia 3,56:1.
+       Como nas demais correções desta fase, o conserto é apontar para outro degrau da rampa
+       que já existe — nenhuma cor nova entra no sistema. */
+    color: var(--pd-ink-950);
+    white-space: nowrap;
+  }
+
+  /* ——— 4. Barra de cidades ——— */
+
+  .pd-header__cities {
+    border-bottom: var(--border-hair) solid var(--border-subtle);
+    background: var(--surface-card);
+  }
+
+  .pd-header__cities-label {
+    font: var(--type-kicker);
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-header__cities-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* ——— Virada de coluna única (FR-010) ———
+     Abaixo de 900px o protótipo troca navegação horizontal por gaveta. Acima dela, a
+     navegação, a busca e o CTA voltam. */
+  @media (width >= 900px) {
+    .pd-header__nav,
+    .pd-header__search,
+    .pd-header__newsletter {
+      display: flex;
+    }
+  }
+
+  @keyframes pd-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.35;
+      transform: scale(0.8);
+    }
+  }
+</style>

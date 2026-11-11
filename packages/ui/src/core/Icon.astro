@@ -1,0 +1,60 @@
+---
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+
+import type { IconName, IconSize } from "@parnaibadigital/design-system/icons";
+
+/**
+ * D-09 — o glifo é inlinado em build, não buscado de CDN.
+ *
+ * O DS especifica Lucide carregado de `lucide-static` por CDN e aplicado como
+ * `mask-image`. Duas coisas quebram nesse caminho: o CDN entra no caminho crítico
+ * (Princípio I) e, se ele não responder, todo botão só de ícone fica sem rótulo visível
+ * (Princípio III e XI). Aqui o SVG é lido do disco durante a construção e escrito direto
+ * no HTML — nenhuma requisição, e o traço continua herdando `currentColor`.
+ *
+ * `name` é do vocabulário fechado do DS: um glifo fora da lista não compila.
+ */
+interface Props {
+  name: IconName;
+  size?: IconSize | undefined;
+  /** Rótulo acessível. Sem ele o ícone é decorativo e fica escondido de leitor de tela. */
+  title?: string | undefined;
+  class?: string | undefined;
+}
+
+const { name, size = "md", title, class: className } = Astro.props;
+
+const require = createRequire(import.meta.url);
+
+/** Lido uma vez por glifo por build — o mesmo ícone reaparece em dezenas de telas. */
+const cache = new Map<string, string>();
+
+function loadGlyph(icon: IconName): string {
+  const cached = cache.get(icon);
+  if (cached !== undefined) return cached;
+
+  const path = require.resolve(`lucide-static/icons/${icon}.svg`);
+  const raw = readFileSync(path, "utf8");
+
+  // Só o miolo: os atributos de apresentação vêm da classe `.pd-icon`, para que tamanho e
+  // cor continuem governados por token e não por atributo embutido no arquivo.
+  const inner = /<svg[^>]*>([\s\S]*?)<\/svg>/.exec(raw)?.[1]?.trim() ?? "";
+  cache.set(icon, inner);
+  return inner;
+}
+
+const glyph = loadGlyph(name);
+const decorative = title === undefined;
+---
+
+<svg
+  class:list={["pd-icon", `pd-icon--${size}`, className]}
+  viewBox="0 0 24 24"
+  role={decorative ? "presentation" : "img"}
+  aria-hidden={decorative ? "true" : undefined}
+  focusable="false"
+>
+  {title !== undefined && <title>{title}</title>}
+  <Fragment set:html={glyph} />
+</svg>

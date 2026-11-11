@@ -1,0 +1,185 @@
+---
+import { AdSlot, Breadcrumb, NewsCard, SectionHeading, Tag, WidgetCard } from "@parnaibadigital/ui";
+
+import PortalLayout from "../../layouts/PortalLayout.astro";
+import { authorHref, client, newsHref, placeLabelForNews } from "../../lib/site";
+import { breadcrumbList, profilePage, type Crumb } from "../../lib/seo/structured-data";
+
+/**
+ * T076 — a página de autor.
+ *
+ * O `ProfilePage` com `Person` é o que o Princípio II pede aqui, e tem função editorial além
+ * de SEO: assinatura verificável é parte do contrato de confiança do Princípio V. Uma
+ * matéria assistida por automação precisa apontar para alguém — pessoa ou a redação — que
+ * responda por ela.
+ *
+ * `articleCount` é **calculado**, nunca lido de um campo fixo: um número escrito à mão
+ * diverge do acervo na primeira publicação e passa a mentir sem que nada acuse.
+ */
+export async function getStaticPaths() {
+  const authors = await client.authors.list();
+  return authors.map((author) => ({ params: { slug: author.slug } }));
+}
+
+const { slug } = Astro.params;
+const author = await client.authors.findBySlug(slug ?? "");
+if (author === undefined) {
+  // Rota gerada por `getStaticPaths` nunca cai aqui. Se cair, o dado sumiu entre a
+  // geração e a renderização: reprovar a construção é o certo — um redirecionamento
+  // não é servível por saída estática e produziria uma página muda em produção.
+  throw new Error(`author inexistente em ${Astro.url.pathname} — dado fora de sincronia.`);
+}
+
+const result = await client.news.list({ authorSlug: author.slug, perPage: 12 });
+const items = await Promise.all(
+  result.data.map(async (article) => ({ article, place: await placeLabelForNews(article) })),
+);
+
+const categories = await client.categories.list();
+const specialties = [...new Set(result.data.map((article) => article.categorySlug))]
+  .map((categorySlug) => categories.find((category) => category.slug === categorySlug))
+  .filter((category) => category !== undefined);
+
+const path = authorHref(author.slug);
+const crumbs: Crumb[] = [
+  { name: "Home", path: "/" },
+  { name: author.name, path },
+];
+---
+
+<PortalLayout
+  meta={{ title: author.name, description: author.bio, path }}
+  schema={[profilePage(author, path), breadcrumbList(crumbs)]}
+>
+  <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+  <div class="pd-listing__grid">
+    <section aria-label={`Perfil de ${author.name}`}>
+      <header class="pd-author">
+        <h1 class="pd-author__name">{author.name}</h1>
+        <p class="pd-author__bio">{author.bio}</p>
+
+        {
+          specialties.length > 0 && (
+            <ul class="pd-author__tags">
+              {specialties.map((category) => (
+                <li>
+                  <Tag tone="neutral" size="sm" pin={false} href={`/editoria/${category.slug}`}>
+                    {category.name}
+                  </Tag>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+
+        <dl class="pd-author__stats">
+          <div>
+            <dt>Matérias publicadas</dt>
+            <dd>{String(result.meta.total)}</dd>
+          </div>
+          <div>
+            <dt>Editorias cobertas</dt>
+            <dd>{String(specialties.length)}</dd>
+          </div>
+        </dl>
+      </header>
+
+      <SectionHeading>Últimos artigos de {author.name.split(" ")[0]}</SectionHeading>
+
+      {
+        items.length === 0 ? (
+          <div class="pd-empty">
+            <h3 class="pd-empty__title">Nenhuma matéria publicada ainda</h3>
+            <p class="pd-empty__text">
+              Este perfil já existe no expediente, mas ainda não assinou nenhum texto.
+            </p>
+            <a class="pd-empty__action" href="/">
+              Voltar para a home
+            </a>
+          </div>
+        ) : (
+          <div class="pd-listing__rows">
+            {items.map(({ article, place }) => (
+              <NewsCard
+                layout="row"
+                headline={article.headline}
+                href={newsHref(article.slug)}
+                place={place}
+                standfirst={article.standfirst}
+                kickerTone={article.tone}
+                curation={article.curation}
+                image={article.image}
+              />
+            ))}
+          </div>
+        )
+      }
+    </section>
+
+    <aside class="pd-listing__side" aria-label="Sobre a apuração">
+      <AdSlot format="rectangle" position="Sidebar do autor" />
+
+      <WidgetCard title="Como apuramos" icon="badge-check" accent="brand">
+        <p class="pd-item__text">
+          Todo texto assistido por automação passa por revisão humana antes de publicar. Fontes
+          oficiais são sempre linkadas e correções ficam registradas no fim da matéria.
+        </p>
+      </WidgetCard>
+    </aside>
+  </div>
+</PortalLayout>
+
+<style>
+  .pd-author {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: var(--space-4) 0 var(--space-8);
+    padding: var(--space-7);
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-1);
+  }
+
+  .pd-author__name {
+    margin: 0;
+    font: var(--type-headline-lg);
+    color: var(--text-strong);
+  }
+
+  .pd-author__bio {
+    max-width: 64ch;
+    margin: 0;
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+
+  .pd-author__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pd-author__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-7);
+    margin: 0;
+  }
+
+  .pd-author__stats dt {
+    font: var(--type-meta);
+    color: var(--text-muted);
+  }
+
+  .pd-author__stats dd {
+    margin: var(--space-2) 0 0;
+    font: var(--weight-bold) var(--size-2xl) / 1 var(--font-display);
+    color: var(--text-strong);
+  }
+</style>

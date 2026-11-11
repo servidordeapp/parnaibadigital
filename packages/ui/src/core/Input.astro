@@ -1,0 +1,152 @@
+---
+import type { IconName } from "@parnaibadigital/design-system/icons";
+
+import Icon from "./Icon.astro";
+
+/**
+ * Campo de texto. O `<label>` é sempre renderizado e sempre ligado por `for`/`id` —
+ * placeholder não é rótulo: ele some ao digitar e não é anunciado de forma confiável.
+ *
+ * `error` recebe `aria-describedby` e `aria-invalid`, para que a mensagem seja anunciada
+ * junto do campo em vez de existir apenas como texto vermelho ao lado.
+ */
+interface Props {
+  label: string;
+  id: string;
+  name?: string | undefined;
+  type?: "text" | "email" | "search" | "tel" | "url" | undefined;
+  value?: string | undefined;
+  placeholder?: string | undefined;
+  hint?: string | undefined;
+  error?: string | undefined;
+  icon?: IconName | undefined;
+  required?: boolean | undefined;
+  class?: string | undefined;
+}
+
+const {
+  label,
+  id,
+  name: fieldName,
+  type = "text",
+  value,
+  placeholder,
+  hint,
+  error,
+  icon,
+  required = false,
+  class: className,
+} = Astro.props;
+
+const hintId = hint === undefined ? undefined : `${id}-hint`;
+const errorId = error === undefined ? undefined : `${id}-error`;
+const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
+---
+
+<div class:list={["pd-field", className]}>
+  <label class="pd-field__label" for={id}>{label}</label>
+
+  <div class:list={["pd-field__control", icon !== undefined && "pd-field__control--with-icon"]}>
+    {icon !== undefined && <Icon name={icon} size="sm" class="pd-field__icon" />}
+    <input
+      class="pd-field__input"
+      id={id}
+      name={fieldName ?? id}
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      required={required}
+      aria-invalid={error === undefined ? undefined : "true"}
+      aria-describedby={describedBy}
+    />
+  </div>
+
+  {
+    hint !== undefined && (
+      <p class="pd-field__hint" id={hintId}>
+        {hint}
+      </p>
+    )
+  }
+  {
+    error !== undefined && (
+      <p class="pd-field__error" id={errorId}>
+        {error}
+      </p>
+    )
+  }
+</div>
+
+<style>
+  .pd-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .pd-field__label {
+    color: var(--text-strong);
+    font: var(--type-ui-sm);
+  }
+
+  .pd-field__control {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .pd-field__icon {
+    position: absolute;
+    left: var(--space-4);
+    color: var(--text-faint);
+    pointer-events: none;
+  }
+
+  .pd-field__input {
+    width: 100%;
+    min-height: var(--tap-min);
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-hair) solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    color: var(--text-body);
+    font: var(--type-body-sm);
+    transition: var(--transition-interactive);
+  }
+
+  .pd-field__control--with-icon .pd-field__input {
+    padding-left: var(--space-10);
+  }
+
+  .pd-field__input::placeholder {
+    color: var(--text-faint);
+  }
+
+  .pd-field__input:focus-visible {
+    border-color: var(--border-brand);
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  .pd-field__input[aria-invalid="true"] {
+    border-color: var(--text-urgent);
+  }
+
+  .pd-field__input:disabled {
+    background: var(--pd-ink-100);
+    color: var(--text-faint);
+    cursor: not-allowed;
+  }
+
+  .pd-field__hint {
+    margin: 0;
+    color: var(--text-muted);
+    font: var(--type-meta);
+  }
+
+  .pd-field__error {
+    margin: 0;
+    color: var(--text-urgent);
+    font: var(--type-meta);
+  }
+</style>

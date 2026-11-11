@@ -1,0 +1,407 @@
+# D-16 / Princípio VIII — as fronteiras entre módulos, verificadas.
+#
+# O Princípio VIII declara que acesso direto ao namespace interno de outro módulo é violação.
+# Sem verificação automatizada isso é uma frase de documento, e a primeira pressa a desfaz.
+# Este arquivo é o que transforma a frase em portão.
+#
+# Cada token pertence a **exatamente uma** camada — é o que permite que a regra de dependência
+# seja lida sem ambiguidade. Por isso não existe uma camada genérica `Domain`: ela conteria os
+# mesmos arquivos que `ModuleContracts` e `Domain_<Módulo>`, e o Deptrac passaria a avaliar o
+# mesmo arquivo por dois caminhos contraditórios.
+#
+# Três famílias de camada:
+#   1. `ModuleContracts` — o que cada módulo publica; o único ponto de contato entre módulos;
+#   2. `Domain_<M>` / `Application_<M>` / `Infrastructure_<M>` — o interior de cada módulo,
+#      privado por construção: nenhum aparece como destino permitido de outro módulo;
+#   3. camadas de borda (`Http`, `Providers`, `Models`) e `Framework`, que existe só para que
+#      dependência de terceiro seja coberta em vez de silenciosa (`--fail-on-uncovered`).
+#
+# A regra de dependência aponta sempre para dentro: Infrastructure → Application → Domain →
+# ModuleContracts. `Domain_<M>` não alcança o framework — o que torna a regra de negócio
+# testável sem levantar a aplicação.
+#
+# Reversão registrada no Complexity Tracking do plano: remover quando os módulos virarem
+# pacotes Composer com fronteira física.
+
+deptrac:
+  paths:
+    - ./app
+
+  layers:
+    # ——— Contratos publicados: o único ponto de contato entre módulos ———
+    - name: ModuleContracts
+      collectors:
+        - type: classNameRegex
+          value: '/^App\\Domain\\[A-Za-z]+\\Contract\\/'
+
+    # ——— Camadas de borda ———
+    - name: Http
+      collectors:
+        - type: directory
+          value: app/Http/.*
+
+    - name: Providers
+      collectors:
+        - type: directory
+          value: app/Providers/.*
+
+    - name: Models
+      collectors:
+        - type: directory
+          value: app/Models/.*
+
+    # ——— Mundo externo ———
+    # Não é código deste repositório; a camada existe para que o Deptrac possa declarar quem
+    # tem direito de tocá-lo, em vez de tratar toda dependência de framework como não coberta.
+    - name: Framework
+      collectors:
+        - type: classNameRegex
+          value: '/^(Illuminate|Laravel|Symfony|Psr|Carbon|Ramsey|Monolog)\\/'
+
+    - name: PhpInternal
+      collectors:
+        - type: php_internal
+          value: '.*'
+
+    # ——— Interior de cada módulo ———
+    # Listados um a um, e não por padrão genérico, para que acrescentar um módulo seja uma
+    # decisão consciente — e não algo que a configuração absorva em silêncio.
+    - name: Domain_News
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\News\\(?!Contract).*/' }]
+    - name: Application_News
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\News\\/' }]
+    - name: Infrastructure_News
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\News\\/' }]
+    - name: Domain_Categories
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Categories\\(?!Contract).*/' }]
+    - name: Application_Categories
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Categories\\/' }]
+    - name: Infrastructure_Categories
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Categories\\/' }]
+    - name: Domain_Cities
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Cities\\(?!Contract).*/' }]
+    - name: Application_Cities
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Cities\\/' }]
+    - name: Infrastructure_Cities
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Cities\\/' }]
+    - name: Domain_Neighborhoods
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Neighborhoods\\(?!Contract).*/' }]
+    - name: Application_Neighborhoods
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Neighborhoods\\/' }]
+    - name: Infrastructure_Neighborhoods
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Neighborhoods\\/' }]
+    - name: Domain_Authors
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Authors\\(?!Contract).*/' }]
+    - name: Application_Authors
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Authors\\/' }]
+    - name: Infrastructure_Authors
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Authors\\/' }]
+    - name: Domain_Sources
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Sources\\(?!Contract).*/' }]
+    - name: Application_Sources
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Sources\\/' }]
+    - name: Infrastructure_Sources
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Sources\\/' }]
+    - name: Domain_OfficialGazette
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\OfficialGazette\\(?!Contract).*/' }]
+    - name: Application_OfficialGazette
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\OfficialGazette\\/' }]
+    - name: Infrastructure_OfficialGazette
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\OfficialGazette\\/' }]
+    - name: Domain_Editorial
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Editorial\\(?!Contract).*/' }]
+    - name: Application_Editorial
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Editorial\\/' }]
+    - name: Infrastructure_Editorial
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Editorial\\/' }]
+    - name: Domain_AI
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\AI\\(?!Contract).*/' }]
+    - name: Application_AI
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\AI\\/' }]
+    - name: Infrastructure_AI
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\AI\\/' }]
+    - name: Domain_Advertising
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Advertising\\(?!Contract).*/' }]
+    - name: Application_Advertising
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Advertising\\/' }]
+    - name: Infrastructure_Advertising
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Advertising\\/' }]
+    - name: Domain_Analytics
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Analytics\\(?!Contract).*/' }]
+    - name: Application_Analytics
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Analytics\\/' }]
+    - name: Infrastructure_Analytics
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Analytics\\/' }]
+    - name: Domain_Users
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Users\\(?!Contract).*/' }]
+    - name: Application_Users
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Users\\/' }]
+    - name: Infrastructure_Users
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Users\\/' }]
+    - name: Domain_Media
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Media\\(?!Contract).*/' }]
+    - name: Application_Media
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Media\\/' }]
+    - name: Infrastructure_Media
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Media\\/' }]
+    - name: Domain_Search
+      collectors: [{ type: classNameRegex, value: '/^App\\Domain\\Search\\(?!Contract).*/' }]
+    - name: Application_Search
+      collectors: [{ type: classNameRegex, value: '/^App\\Application\\Search\\/' }]
+    - name: Infrastructure_Search
+      collectors: [{ type: classNameRegex, value: '/^App\\Infrastructure\\Search\\/' }]
+
+  ruleset:
+    # Um contrato só depende de outro contrato (dependência na própria camada é implícita) e
+    # dos tipos da própria linguagem — `DateTimeImmutable` num contrato é vocabulário do PHP,
+    # não acoplamento a fornecedor.
+    ModuleContracts:
+      - PhpInternal
+
+    # Nada de fora pode alcançar o interior de um módulo: repare que nenhum `Domain_<M>`,
+    # `Application_<M>` ou `Infrastructure_<M>` aparece como destino permitido de outro módulo.
+    # É essa ausência que torna a fronteira real.
+    Domain_News:
+      - ModuleContracts
+      - PhpInternal
+    Application_News:
+      - Domain_News
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_News:
+      - Domain_News
+      - Application_News
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Categories:
+      - ModuleContracts
+      - PhpInternal
+    Application_Categories:
+      - Domain_Categories
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Categories:
+      - Domain_Categories
+      - Application_Categories
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Cities:
+      - ModuleContracts
+      - PhpInternal
+    Application_Cities:
+      - Domain_Cities
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Cities:
+      - Domain_Cities
+      - Application_Cities
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Neighborhoods:
+      - ModuleContracts
+      - PhpInternal
+    Application_Neighborhoods:
+      - Domain_Neighborhoods
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Neighborhoods:
+      - Domain_Neighborhoods
+      - Application_Neighborhoods
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Authors:
+      - ModuleContracts
+      - PhpInternal
+    Application_Authors:
+      - Domain_Authors
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Authors:
+      - Domain_Authors
+      - Application_Authors
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Sources:
+      - ModuleContracts
+      - PhpInternal
+    Application_Sources:
+      - Domain_Sources
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Sources:
+      - Domain_Sources
+      - Application_Sources
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_OfficialGazette:
+      - ModuleContracts
+      - PhpInternal
+    Application_OfficialGazette:
+      - Domain_OfficialGazette
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_OfficialGazette:
+      - Domain_OfficialGazette
+      - Application_OfficialGazette
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Editorial:
+      - ModuleContracts
+      - PhpInternal
+    Application_Editorial:
+      - Domain_Editorial
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Editorial:
+      - Domain_Editorial
+      - Application_Editorial
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_AI:
+      - ModuleContracts
+      - PhpInternal
+    Application_AI:
+      - Domain_AI
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_AI:
+      - Domain_AI
+      - Application_AI
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Advertising:
+      - ModuleContracts
+      - PhpInternal
+    Application_Advertising:
+      - Domain_Advertising
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Advertising:
+      - Domain_Advertising
+      - Application_Advertising
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Analytics:
+      - ModuleContracts
+      - PhpInternal
+    Application_Analytics:
+      - Domain_Analytics
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Analytics:
+      - Domain_Analytics
+      - Application_Analytics
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Users:
+      - ModuleContracts
+      - PhpInternal
+    Application_Users:
+      - Domain_Users
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Users:
+      - Domain_Users
+      - Application_Users
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Media:
+      - ModuleContracts
+      - PhpInternal
+    Application_Media:
+      - Domain_Media
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Media:
+      - Domain_Media
+      - Application_Media
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+    Domain_Search:
+      - ModuleContracts
+      - PhpInternal
+    Application_Search:
+      - Domain_Search
+      - ModuleContracts
+      - PhpInternal
+    Infrastructure_Search:
+      - Domain_Search
+      - Application_Search
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+
+    # A borda HTTP orquestra casos de uso e enxerga contratos — nunca o interior de um domínio.
+    Http:
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+      - Application_News
+      - Application_Categories
+      - Application_Cities
+      - Application_Neighborhoods
+      - Application_Authors
+      - Application_Sources
+      - Application_OfficialGazette
+      - Application_Editorial
+      - Application_AI
+      - Application_Advertising
+      - Application_Analytics
+      - Application_Users
+      - Application_Media
+      - Application_Search
+
+    # O container liga porta a adaptador: é o único lugar que conhece as duas pontas.
+    Providers:
+      - ModuleContracts
+      - Framework
+      - PhpInternal
+      - Application_News
+      - Infrastructure_News
+      - Application_Categories
+      - Infrastructure_Categories
+      - Application_Cities
+      - Infrastructure_Cities
+      - Application_Neighborhoods
+      - Infrastructure_Neighborhoods
+      - Application_Authors
+      - Infrastructure_Authors
+      - Application_Sources
+      - Infrastructure_Sources
+      - Application_OfficialGazette
+      - Infrastructure_OfficialGazette
+      - Application_Editorial
+      - Infrastructure_Editorial
+      - Application_AI
+      - Infrastructure_AI
+      - Application_Advertising
+      - Infrastructure_Advertising
+      - Application_Analytics
+      - Infrastructure_Analytics
+      - Application_Users
+      - Infrastructure_Users
+      - Application_Media
+      - Infrastructure_Media
+      - Application_Search
+      - Infrastructure_Search
+
+    # Model do esqueleto do Laravel, preservado. Esta fase não persiste nada (FR-038).
+    Models:
+      - Framework
+      - PhpInternal
+
+    Framework: ~
+    PhpInternal: ~

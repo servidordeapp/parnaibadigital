@@ -1,0 +1,212 @@
+---
+import type { DataColumn, DataRow } from "./types";
+
+import Badge from "../core/Badge.astro";
+import Icon from "../core/Icon.astro";
+
+/**
+ * **Adição justificada** (FR-007) — tabela de listagem do painel. O DS não publica uma.
+ *
+ * É `<table>` de verdade, com `<caption>`, `<th scope>` e `aria-sort`. Um grid de `<div>`
+ * pareceria igual e perderia tudo o que faz uma tabela navegável por leitor de tela: o
+ * anúncio de linha e coluna, o salto por célula, a relação entre cabeçalho e valor. Numa
+ * tela cujo trabalho é comparar linhas, isso é a funcionalidade, não um detalhe.
+ *
+ * A ordenação é `<a href>` — cada critério tem endereço próprio e funciona sem JavaScript.
+ *
+ * O **estado vazio** é obrigatório e anunciado (`role="status"`): uma tabela sem linhas e
+ * sem explicação parece defeito de carregamento, e no painel isso vira chamado de suporte.
+ */
+interface Props {
+  caption: string;
+  columns: readonly DataColumn[];
+  rows: readonly DataRow[];
+  /** Chave da coluna ordenada no momento. */
+  sortKey?: string | undefined;
+  sortDirection?: "asc" | "desc" | undefined;
+  /** Monta o endereço de uma ordenação. A rota é da tela, não deste componente. */
+  hrefForSort?: ((key: string) => string) | undefined;
+  emptyTitle?: string | undefined;
+  emptyText?: string | undefined;
+  class?: string | undefined;
+}
+
+const {
+  caption,
+  columns,
+  rows,
+  sortKey,
+  sortDirection = "asc",
+  hrefForSort,
+  emptyTitle = "Nada para mostrar aqui",
+  emptyText = "Nenhum registro corresponde aos filtros aplicados.",
+  class: className,
+} = Astro.props;
+---
+
+{
+  rows.length === 0 ? (
+    <div class:list={["pd-table__empty", className]} role="status">
+      <Icon name="search" size="lg" />
+      <h3 class="pd-table__empty-title">{emptyTitle}</h3>
+      <p class="pd-table__empty-text">{emptyText}</p>
+    </div>
+  ) : (
+    // `tabindex="0"` porque a região rola: sem foco, quem navega por teclado não consegue
+    // chegar às colunas que ficaram fora da tela — é a `scrollable-region-focusable` do axe,
+    // e não é formalidade. `role="region"` com nome dá ao leitor de tela o mesmo rótulo da
+    // legenda, para que o foco não caia num contêiner anônimo.
+    <div
+      class:list={["pd-table__scroll", className]}
+      tabindex="0"
+      role="region"
+      aria-label={caption}
+    >
+      <table class="pd-table">
+        <caption class="pd-table__caption">
+          {caption} · {rows.length} registro(s)
+        </caption>
+
+        <thead>
+          <tr>
+            {columns.map((column) => (
+              <th
+                scope="col"
+                class:list={["pd-table__th", column.numeric === true && "pd-table__th--numeric"]}
+                aria-sort={
+                  column.key === sortKey
+                    ? sortDirection === "asc"
+                      ? "ascending"
+                      : "descending"
+                    : undefined
+                }
+              >
+                {column.sortable === true && hrefForSort !== undefined ? (
+                  <a class="pd-table__sort" href={hrefForSort(column.key)}>
+                    {column.label}
+                    <Icon name="chevron-right" size="xs" />
+                  </a>
+                ) : (
+                  column.label
+                )}
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody>
+          {rows.map((row) => (
+            <tr class="pd-table__row">
+              {columns.map((column, index) => (
+                <td
+                  class:list={["pd-table__td", column.numeric === true && "pd-table__td--numeric"]}
+                >
+                  {index === 0 && row.badge !== undefined && (
+                    <Badge tone={row.badge.tone}>{row.badge.label}</Badge>
+                  )}
+                  {index === 0 && row.href !== undefined ? (
+                    <a class="pd-table__link" href={row.href}>
+                      {row.cells[column.key] ?? ""}
+                    </a>
+                  ) : (
+                    (row.cells[column.key] ?? "")
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+<style>
+  /* A tabela rola dentro do próprio container: a página nunca rola lateralmente, que é o
+     defeito clássico de tabela larga em 360px. */
+  .pd-table__scroll {
+    overflow-x: auto;
+  }
+
+  .pd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font: var(--type-body-sm);
+  }
+
+  .pd-table__caption {
+    margin-bottom: var(--space-4);
+    font: var(--type-meta);
+    color: var(--text-faint);
+    text-align: left;
+  }
+
+  .pd-table__th {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: var(--border-thick) solid var(--border-default);
+    font: var(--type-kicker);
+    color: var(--text-faint);
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    white-space: nowrap;
+  }
+
+  .pd-table__th--numeric,
+  .pd-table__td--numeric {
+    text-align: right;
+  }
+
+  .pd-table__sort {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    color: inherit;
+  }
+
+  .pd-table__td {
+    padding: var(--space-4);
+    border-bottom: var(--border-hair) solid var(--border-subtle);
+    color: var(--text-body);
+    vertical-align: middle;
+  }
+
+  .pd-table__row:hover {
+    background: var(--surface-subtle);
+  }
+
+  .pd-table__link {
+    font: var(--type-ui);
+    color: var(--text-strong);
+  }
+
+  .pd-table__link:hover {
+    color: var(--text-brand);
+  }
+
+  .pd-table__empty {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-11) var(--space-7);
+    border: var(--border-hair) dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-subtle);
+    color: var(--text-faint);
+    text-align: center;
+  }
+
+  .pd-table__empty-title {
+    margin: 0;
+    font: var(--type-headline-sm);
+    color: var(--text-strong);
+  }
+
+  .pd-table__empty-text {
+    max-width: 44ch;
+    margin: 0;
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+</style>

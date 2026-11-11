@@ -1,0 +1,88 @@
+---
+import { AdSlot, Breadcrumb, Button, SectionHeading } from "@parnaibadigital/ui";
+
+import PortalLayout from "../layouts/PortalLayout.astro";
+import { breadcrumbList, organization, webPage, type Crumb } from "../lib/seo/structured-data";
+
+/**
+ * T075 — a superfície do anunciante.
+ *
+ * Os formatos exibidos aqui são os mesmos `AdSlot` usados no portal, com as mesmas alturas
+ * de token. Isso não é economia de código: é o que impede a peça comercial de prometer um
+ * formato que a página não reserva — o descompasso clássico entre o que se vende e o que
+ * cabe no layout.
+ *
+ * Nenhuma rede de anúncio é integrada (FR-038). O contato é `mailto:`, não formulário com
+ * envio — que exigiria servidor que esta fase não tem.
+ */
+const path = "/anuncie";
+const crumbs: Crumb[] = [
+  { name: "Home", path: "/" },
+  { name: "Anuncie", path },
+];
+
+const description =
+  "Anuncie no ParnaíbaDigital e fale com quem mora no litoral do Piauí. Formatos display, publicidade local por município e presença no guia comercial.";
+
+const formats = [
+  {
+    format: "leaderboard" as const,
+    label: "Topo de página",
+    note: "Presente na home e nas matérias.",
+  },
+  {
+    format: "rectangle" as const,
+    label: "Barra lateral",
+    note: "Acompanha a leitura em todas as listagens.",
+  },
+  { format: "inread" as const, label: "In-article", note: "Após o segundo parágrafo da matéria." },
+];
+---
+
+<PortalLayout
+  meta={{ title: "Anuncie no ParnaíbaDigital", description, path }}
+  schema={[webPage("Anuncie", description, path), organization(), breadcrumbList(crumbs)]}
+>
+  <Breadcrumb items={crumbs.map((crumb) => ({ label: crumb.name, href: crumb.path }))} />
+
+  <header class="pd-listing__header">
+    <span class="pd-listing__kicker">Comercial</span>
+    <h1 class="pd-listing__title">Anuncie no ParnaíbaDigital</h1>
+    <p class="pd-listing__lede">{description}</p>
+  </header>
+
+  <section aria-label="Formatos disponíveis">
+    <SectionHeading>Formatos disponíveis</SectionHeading>
+
+    <ul class="pd-list-reset">
+      {
+        formats.map((entry) => (
+          <li class="pd-item" data-pd-ad-wrapper>
+            <h3 class="pd-item__title">{entry.label}</h3>
+            <p class="pd-item__text">{entry.note}</p>
+            <AdSlot format={entry.format} position={entry.label} />
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="pd-advertise__contact" aria-label="Falar com a equipe comercial">
+    <SectionHeading accent="blue">Falar com a equipe</SectionHeading>
+    <p class="pd-item__text">
+      A venda é direta, sem intermediário, e o plano é fechado por município. Escreva contando qual
+      cidade e qual bairro você quer alcançar.
+    </p>
+    <div class="pd-item__actions">
+      <Button variant="hot" href="mailto:comercial@parnaibadigital.com.br">
+        Escrever para o comercial
+      </Button>
+    </div>
+  </section>
+</PortalLayout>
+
+<style>
+  .pd-advertise__contact {
+    margin-top: var(--space-9);
+  }
+</style>

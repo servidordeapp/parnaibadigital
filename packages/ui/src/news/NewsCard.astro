@@ -1,0 +1,183 @@
+---
+import type { CurationStamp as Curation, MediaRef, Tone } from "@parnaibadigital/types";
+
+import Badge from "../core/Badge.astro";
+import PhotoFrame from "../core/PhotoFrame.astro";
+import CurationStamp from "./CurationStamp.astro";
+
+/**
+ * Card padrão do grid. O DS impõe que a manchete seja escrita `[Bairro] + fato` e que o
+ * bairro apareça **separado visualmente** — o sinal geográfico precisa ser lido numa
+ * varredura de meio segundo, e enterrado dentro do título ele não é.
+ *
+ * O card inteiro é `<a>`, não um `<div>` com clique: é o que faz o destino existir sem
+ * JavaScript, aparecer na aba de links do leitor de tela e ser rastreável (Princípio XI).
+ */
+interface Props {
+  headline: string;
+  href: string;
+  /** "São José · Parnaíba" — montado pela tela (FR-026). */
+  place: string;
+  standfirst?: string | undefined;
+  kicker?: string | undefined;
+  kickerTone?: Tone | undefined;
+  curation: Curation;
+  image?: MediaRef | undefined;
+  layout?: "stacked" | "row" | undefined;
+  /** `h2` dentro de seção com título próprio; `h3` quando a seção já usou `h2`. */
+  headingLevel?: "h2" | "h3" | "h4" | undefined;
+  class?: string | undefined;
+}
+
+const {
+  headline,
+  href,
+  place,
+  standfirst,
+  kicker,
+  kickerTone = "brand",
+  curation,
+  image,
+  layout = "stacked",
+  headingLevel = "h3",
+  class: className,
+} = Astro.props;
+
+const Heading = headingLevel;
+
+/** O DS mapeia o tom da editoria para o tom de badge; `standard` não pinta nada. */
+const badgeTone = (
+  {
+    urgent: "urgent",
+    brand: "brand",
+    highlight: "hot",
+    standard: "soft",
+  } as const
+)[kickerTone];
+---
+
+<article class:list={["pd-news-card", `pd-news-card--${layout}`, className]}>
+  <a class="pd-news-card__link" href={href}>
+    <PhotoFrame
+      media={image}
+      ratio={layout === "row" ? "4/3" : "16/9"}
+      radius="sm"
+      class="pd-news-card__photo"
+    />
+
+    <div class="pd-news-card__content">
+      <div class="pd-news-card__meta">
+        {kicker !== undefined && <Badge tone={badgeTone}>{kicker}</Badge>}
+        <span class="pd-news-card__place">{place}</span>
+      </div>
+
+      <Heading class="pd-news-card__headline">{headline}</Heading>
+
+      {standfirst !== undefined && <p class="pd-news-card__standfirst">{standfirst}</p>}
+
+      <CurationStamp curation={curation} showLabel={layout !== "row"} />
+    </div>
+  </a>
+</article>
+
+<style>
+  .pd-news-card {
+    border: var(--border-hair) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-1);
+    transition: var(--transition-interactive);
+  }
+
+  .pd-news-card__link {
+    display: block;
+    padding: var(--space-4);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .pd-news-card__photo {
+    margin-bottom: var(--space-4);
+  }
+
+  .pd-news-card__meta {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    margin-bottom: var(--space-3);
+  }
+
+  .pd-news-card__place {
+    font: var(--type-kicker);
+    color: var(--text-hot);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+  }
+
+  .pd-news-card__headline {
+    margin: 0 0 var(--space-3);
+    font: var(--type-headline-md);
+    color: var(--text-strong);
+    text-wrap: pretty;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .pd-news-card__standfirst {
+    margin: 0 0 var(--space-4);
+    font: var(--type-body-sm);
+    color: var(--text-muted);
+  }
+
+  /* ——— Estados do DS: sombra 2, sobe 1px, fundo azul 50, título em azul 700 ——— */
+
+  .pd-news-card:hover {
+    background: var(--surface-card-hover);
+    box-shadow: var(--shadow-2);
+    transform: translateY(-1px);
+  }
+
+  .pd-news-card:hover .pd-news-card__headline {
+    color: var(--pd-blue-700);
+  }
+
+  .pd-news-card:active {
+    box-shadow: var(--shadow-1);
+    transform: none;
+  }
+
+  .pd-news-card:has(.pd-news-card__link:focus-visible) {
+    outline: var(--border-thick) solid var(--pd-blue-600);
+    outline-offset: var(--space-1);
+  }
+
+  .pd-news-card__link:focus-visible {
+    outline: none;
+  }
+
+  /* ——— Variante em linha ——— */
+
+  .pd-news-card--row .pd-news-card__headline {
+    font: var(--type-headline-sm);
+  }
+
+  .pd-news-card--row .pd-news-card__photo {
+    margin-bottom: var(--space-0);
+  }
+
+  /* A coluna de foto só vira coluna quando há largura para ela: abaixo de 640px a linha
+     empilha, senão a foto encolhe até virar selo ilegível. */
+  @media (width >= 640px) {
+    .pd-news-card--row .pd-news-card__link {
+      display: grid;
+      grid-template-columns: var(--space-12) 1fr;
+      gap: var(--space-5);
+      align-items: start;
+    }
+  }
+
+  @media (width >= 900px) {
+    .pd-news-card--row .pd-news-card__link {
+      grid-template-columns: calc(var(--space-12) * 2) 1fr;
+    }
+  }
+</style>

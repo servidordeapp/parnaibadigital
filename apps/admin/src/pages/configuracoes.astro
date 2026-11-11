@@ -1,0 +1,82 @@
+---
+import { MUNICIPALITIES } from "@parnaibadigital/api-client";
+import { Button, DataTable, Input, SectionHeading } from "@parnaibadigital/ui";
+
+import PanelLayout from "../layouts/PanelLayout.astro";
+
+/**
+ * T107 — Configurações.
+ *
+ * A tabela de municípios é lida do **registro canônico**, não editável aqui. É deliberado:
+ * o registro é a fonte única de verdade da taxonomia geográfica (D-13, SC-010), e permitir
+ * editá-lo por uma tela sem persistência daria a impressão de que a mudança valeu.
+ * Acrescentar um município é editar `packages/api-client/src/data/municipalities.ts` — e o
+ * `prebuild` reprova colisão de slug antes que ela chegue a produção.
+ */
+---
+
+<PanelLayout
+  title="Configurações"
+  active="/configuracoes"
+  lede="Identidade do produto, cobertura geográfica e os portões de qualidade. Nada é gravado nesta fase."
+>
+  <section class="pd-panel__section" aria-label="Identidade">
+    <SectionHeading level="h2">Identidade</SectionHeading>
+    <div class="pd-panel__card pd-config__fields">
+      <Input id="config-nome" label="Nome do produto" value="ParnaíbaDigital" />
+      <Input
+        id="config-dominio"
+        label="Domínio público"
+        value="parnaibadigital.com.br"
+        hint="É dele que saem as canônicas absolutas e os sitemaps."
+      />
+      <Input
+        id="config-newsletter"
+        label="Horário da newsletter"
+        value="06:30"
+        hint="Sem envio real nesta fase (FR-038)."
+      />
+      <Button data-pd-toast-trigger="Nada foi salvo: esta fase não tem persistência (FR-038).">
+        Salvar
+      </Button>
+    </div>
+  </section>
+
+  <section class="pd-panel__section" aria-label="Cobertura geográfica">
+    <SectionHeading level="h2" accent="blue">Cobertura geográfica</SectionHeading>
+    <DataTable
+      caption="Municípios do registro canônico"
+      columns={[
+        { key: "name", label: "Município" },
+        { key: "ibge", label: "Código IBGE" },
+        { key: "slug", label: "Slug" },
+        { key: "state", label: "UF" },
+      ]}
+      rows={MUNICIPALITIES.map((municipality) => ({
+        id: municipality.ibgeCode,
+        cells: {
+          name: municipality.name,
+          ibge: municipality.ibgeCode,
+          slug: `/${municipality.slug}`,
+          state: municipality.state,
+        },
+      }))}
+    />
+    <p class="pd-panel__note">
+      Somente leitura: o registro vive em `packages/api-client/src/data/municipalities.ts`.
+      Acrescentar um município cria hub, feed RSS e entrada de sitemap sozinho (SC-010).
+    </p>
+  </section>
+</PanelLayout>
+
+<style>
+  .pd-config__fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    /* medida de leitura de formulário. O DS só tokeniza a medida editorial
+       (--content-measure, 680px); pedido aberto ao projeto de design.
+       check-tokens-disable-next-line */
+    max-width: 520px;
+  }
+</style>

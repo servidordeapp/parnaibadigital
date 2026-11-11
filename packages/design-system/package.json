@@ -1,0 +1,30 @@
+{
+  "name": "@parnaibadigital/design-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Design System importado byte-idêntico (vendor/) mais os três overlays obrigatórios (D-07, D-08, D-09).",
+  "exports": {
+    ".": "./src/index.css",
+    "./theme/dark.css": "./src/theme/dark.css",
+    "./theme/fonts-local.css": "./src/theme/fonts-local.css",
+    "./theme/icons.css": "./src/theme/icons.css",
+    "./theme/motion.css": "./src/theme/motion.css",
+    "./icons": "./src/icons/manifest.ts",
+    "./fonts": "./src/fonts.ts",
+    "./vendor/*": "./vendor/*"
+  },
+  "files": [
+    "src",
+    "vendor",
+    "MANIFEST.sha256"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "^5.2.10",
+    "@fontsource-variable/source-sans-3": "^5.2.10",
+    "@fontsource/ibm-plex-mono": "^5.2.10"
+  }
+}

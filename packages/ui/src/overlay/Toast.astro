@@ -1,0 +1,87 @@
+---
+import Icon from "../core/Icon.astro";
+
+/**
+ * **Adição justificada** (FR-007) — aviso temporário. O `readme.md` do DS declara
+ * explicitamente que Toast não foi criado.
+ *
+ * `role="status"` com `aria-live="polite"`, e não `alert`: o aviso deste painel confirma uma
+ * ação que a pessoa acabou de fazer. `alert` interromperia a leitura em curso para dizer
+ * "salvo", o que é ruído — `polite` espera a pausa natural.
+ *
+ * A região existe no HTML desde o início, vazia. Inserir o elemento só na hora do aviso faz
+ * parte dos leitores de tela não anunciarem nada, porque a região viva precisa estar
+ * presente antes de mudar de conteúdo.
+ */
+interface Props {
+  class?: string | undefined;
+}
+
+const { class: className } = Astro.props;
+---
+
+<div
+  class:list={["pd-toast", className]}
+  data-pd-toast
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"
+  hidden
+>
+  <Icon name="badge-check" size="sm" class="pd-toast__icon" />
+  <span class="pd-toast__message" data-pd-toast-message></span>
+</div>
+
+<script>
+  import { initToast } from "./toast";
+
+  initToast();
+</script>
+
+<style>
+  .pd-toast {
+    position: fixed;
+    inset-block-end: var(--space-7);
+    inset-inline-start: 50%;
+    z-index: 60;
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    max-width: 90vw;
+    padding: var(--space-4) var(--space-6);
+    border-radius: var(--radius-pill);
+    background: var(--surface-header);
+    box-shadow: var(--shadow-4);
+    font: var(--type-ui);
+    color: var(--text-inverse);
+    transform: translateX(-50%);
+    animation: pd-toast-in var(--dur-base) var(--ease-out);
+  }
+
+  .pd-toast[hidden] {
+    display: none;
+  }
+
+  .pd-toast__icon {
+    color: var(--pd-sun-400);
+  }
+
+  @keyframes pd-toast-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, var(--space-4));
+    }
+
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+
+  /* Princípio III — quem pede menos movimento recebe o aviso sem a entrada animada. */
+  @media (prefers-reduced-motion: reduce) {
+    .pd-toast {
+      animation: none;
+    }
+  }
+</style>

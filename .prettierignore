@@ -1,0 +1,23 @@
+# Design System importado — byte-idêntico ao original (FR-001, SC-017).
+# Formatar aqui quebraria a verificação de integridade.
+packages/design-system/vendor/**
+
+# Gerado do contrato OpenAPI — reescrito por `pnpm types:generate`.
+packages/types/src/generated/**
+
+# Artefatos do Spec Kit — autoria humana, formatação própria.
+specs/
+.specify/
+
+node_modules/
+dist/
+.astro/
+backend/
+pnpm-lock.yaml
+playwright-report/
+test-results/
+coverage/
+.shots/
+
+# Perfis temporários do Chrome criados pelo Lighthouse sob WSL — ver .gitignore.
+C:*
